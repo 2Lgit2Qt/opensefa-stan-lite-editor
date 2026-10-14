@@ -90,6 +90,16 @@ http://localhost:8000
 2. Confirm the Solver URL is `http://localhost:8080/solve`.
 3. Click **Solve**.
 
+## Boundary stocks
+
+Stocks can be marked as **Boundary stock (no balance equation)**. Use boundary stocks for system inputs and outputs: flows connected to them are not forced to zero.
+
+Internal stocks include a stock-change balance:
+
+```text
+inputs - outputs - end_content + start_content = 0
+```
+
 ## Troubleshooting
 
 ### `failed to find source of parent package: StructUtils`
@@ -124,9 +134,9 @@ julia --project -e "using OpenSEFA; start_server()"
 
 - Processes, stocks, subsystems, directed flows, connect mode, and drag positioning.
 - Multiple layers with per-layer flow data, units, uncertainties, and transfer coefficients.
-- Per-layer balances for processes, subsystems, and stocks; stock start/end contents.
+- Per-layer balances for processes, subsystems, and internal stocks; stock start/end contents.
 - Concentration links between layers, exported as bilinear equations.
-- Autosave, project save/open, solver-JSON export, and result display.
+- Autosave, project save/open, solver-JSON export, and result diagnostics.
 
 ## License
 
