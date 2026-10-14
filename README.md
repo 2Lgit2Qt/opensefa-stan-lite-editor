@@ -2,6 +2,25 @@
 
 A dependency-free browser editor for multi-layer MFA/SEFA flow models, connected to the OpenSEFA.jl reconciliation solver.
 
+## Update your local copy
+
+If you already cloned the editor, pull the latest changes:
+
+```bash
+cd ~/Projects/opensefa-stan-lite-editor
+git pull
+```
+
+Then refresh the browser with `Cmd+Shift+R` to bypass cached JavaScript.
+
+If you changed files locally and `git pull` refuses, stash your changes first:
+
+```bash
+git stash
+git pull
+git stash pop
+```
+
 ## Launch locally on an Apple-silicon (M1/M2/M3/M4) Mac
 
 ### 1. Install Homebrew
