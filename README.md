@@ -1,6 +1,6 @@
 # OpenSEFA STAN-lite Editor
 
-A dependency-free browser editor for MFA/SEFA flow models. It exports JSON compatible with the OpenSEFA.jl `/solve` HTTP endpoint, including linear mass balances, bilinear transfer-coefficient equations, stock-change balances, and subsystem boundaries.
+A dependency-free browser editor for multi-layer MFA/SEFA flow models. It exports JSON compatible with the OpenSEFA.jl `/solve` HTTP endpoint, including linear balances, bilinear transfer-coefficient equations, stock-change balances, subsystem boundaries, and cross-layer concentration links.
 
 ## Run locally
 
@@ -13,13 +13,11 @@ A dependency-free browser editor for MFA/SEFA flow models. It exports JSON compa
 ## Features
 
 - Processes, stocks, subsystems, directed flows, connect mode, and drag positioning.
-- Flow units, measured/unmeasured/fixed types, values, and uncertainties.
-- Per-process transfer coefficients, exported as bilinear equations:
-  `output_flow - tc * sum(input_flows) = 0`.
-- Stocks with start/end contents; stock balances include stock change:
-  `inputs - outputs - end_content + start_content = 0`.
-- Subsystems use boundary balances: `inputs - outputs = 0`.
-- Autosave, project save/open as JSON, solver-JSON export, and a result table.
+- Multiple layers (e.g. goods, substance, energy) with per-layer flow data, units, uncertainties, and transfer coefficients.
+- Per-layer balances for processes, subsystems, and stocks.
+- Stock start/end contents and stock-change balances.
+- Concentration links: `secondary_layer_flow = concentration * primary_layer_flow`, exported as bilinear equations.
+- Autosave, project save/open, solver-JSON export, and result table.
 
 ## License
 
