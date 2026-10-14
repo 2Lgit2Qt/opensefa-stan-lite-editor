@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OpenSEFA STAN-lite Editor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>OpenSEFA STAN-lite Editor</h1>
+  <div class="toolbar">
+    <button id="addProcess">+ Process</button>
+    <button id="addStock">+ Stock</button>
+    <button id="connectMode">Connect</button>
+    <button id="deleteSel">Delete</button>
+    <button id="loadDemo">Load demo</button>
+    <button id="exportJson">Export JSON</button>
+    <button id="solve">Solve</button>
+  </div>
+</header>
+<main>
+  <svg id="canvas"></svg>
+  <aside id="panel">
+    <h2>Properties</h2>
+    <div id="props"></div>
+    <h2>Solver</h2>
+    <label>Solver URL<input id="solverUrl" value="http://localhost:8080/solve"></label>
+    <pre id="output"></pre>
+  </aside>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

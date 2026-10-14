@@ -1,0 +1,13 @@
+*{box-sizing:border-box;margin:0}
+body{font-family:system-ui,sans-serif;height:100vh;display:flex;flex-direction:column}
+header{padding:8px 16px;border-bottom:1px solid #ddd}
+.toolbar button{margin-right:6px;padding:6px 12px}
+main{flex:1;display:flex;min-height:0}
+#canvas{flex:1;background:#fafafa}
+aside{width:320px;border-left:1px solid #ddd;padding:12px;overflow:auto}
+label{display:block;margin:8px 0;font-size:13px}
+input,select{width:100%;padding:4px;margin-top:2px}
+pre{background:#f4f4f4;padding:8px;font-size:11px;white-space:pre-wrap;max-height:300px;overflow:auto}
+.node{cursor:move}
+.flow{cursor:pointer}
+.selected{stroke:#e67e22;stroke-width:3}
