@@ -4,10 +4,13 @@ header{padding:8px 16px;border-bottom:1px solid #ddd}
 .toolbar button{margin-right:6px;padding:6px 12px}
 main{flex:1;display:flex;min-height:0}
 #canvas{flex:1;background:#fafafa}
-aside{width:320px;border-left:1px solid #ddd;padding:12px;overflow:auto}
+aside{width:340px;border-left:1px solid #ddd;padding:12px;overflow:auto}
 label{display:block;margin:8px 0;font-size:13px}
 input,select{width:100%;padding:4px;margin-top:2px}
-pre{background:#f4f4f4;padding:8px;font-size:11px;white-space:pre-wrap;max-height:300px;overflow:auto}
+pre{background:#f4f4f4;padding:8px;font-size:11px;white-space:pre-wrap;max-height:260px;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}
+th,td{border:1px solid #ddd;padding:3px 5px;text-align:left}
 .node{cursor:move}
 .flow{cursor:pointer}
 .selected{stroke:#e67e22;stroke-width:3}
+h3,h4{margin:10px 0 4px}

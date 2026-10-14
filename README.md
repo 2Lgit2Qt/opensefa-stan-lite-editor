@@ -1,6 +1,6 @@
 # OpenSEFA STAN-lite Editor
 
-A dependency-free browser editor for simple MFA/SEFA flow models. It exports JSON compatible with the OpenSEFA.jl `/solve` HTTP endpoint, including linear mass balances and bilinear transfer-coefficient equations.
+A dependency-free browser editor for MFA/SEFA flow models. It exports JSON compatible with the OpenSEFA.jl `/solve` HTTP endpoint, including linear mass balances and bilinear transfer-coefficient equations.
 
 ## Run locally
 
@@ -10,14 +10,14 @@ A dependency-free browser editor for simple MFA/SEFA flow models. It exports JSO
    `python -m http.server 8000`
 3. Open http://localhost:8000
 
-## Usage
+## Features
 
-- Add processes/stocks, use **Connect** then click two nodes to create a flow.
-- Select a flow to set measured/unmeasured/fixed, value, and uncertainty.
-- Select a **process** to define transfer coefficients for its outgoing flows. Each enabled TC adds:
-  `output_flow - tc * sum(input_flows) = 0`
-  exported as bilinear terms in the OpenSEFA JSON format.
-- **Export JSON** shows the `/solve` payload; **Solve** posts it to the solver URL.
+- Processes, stocks, directed flows, connect mode, and drag positioning.
+- Flow units, measured/unmeasured/fixed types, values, and uncertainties.
+- Per-process transfer coefficients, exported as bilinear equations:
+  `output_flow - tc * sum(input_flows) = 0`.
+- Autosave in the browser, project save/open as JSON, and solver-JSON export.
+- Solver result display with a reconciled-values table when available.
 
 ## License
 
