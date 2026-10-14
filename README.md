@@ -4,21 +4,34 @@ A dependency-free browser editor for multi-layer MFA/SEFA flow models, connected
 
 ## Update your local copy
 
-If you already cloned the editor, pull the latest changes:
+To get the latest editor and solver changes:
 
 ```bash
 cd ~/Projects/opensefa-stan-lite-editor
 git pull
+
+cd ~/Projects/opensefa-reconciliation-solver
+git pull
 ```
 
-Then refresh the browser with `Cmd+Shift+R` to bypass cached JavaScript.
+Then hard-refresh the browser with `Cmd+Shift+R` so it loads the updated JavaScript instead of a cached copy.
 
-If you changed files locally and `git pull` refuses, stash your changes first:
+If you changed files locally and `git pull` refuses:
 
 ```bash
 git stash
 git pull
 git stash pop
+```
+
+To update Julia itself and its packages:
+
+```bash
+juliaup update
+juliaup default 1.10
+cd ~/Projects/opensefa-reconciliation-solver
+julia --project -e 'using Pkg; Pkg.update()'
+julia --project -e 'using Pkg; Pkg.precompile()'
 ```
 
 ## Launch locally on an Apple-silicon (M1/M2/M3/M4) Mac
@@ -109,6 +122,8 @@ http://localhost:8000
 2. Confirm the Solver URL is `http://localhost:8080/solve`.
 3. Click **Solve**.
 
+The demo has a loss outlet at P1 so the transfer coefficient is not over-constrained.
+
 ## Boundary stocks
 
 Stocks can be marked as **Boundary stock (no balance equation)**. Use boundary stocks for system inputs and outputs: flows connected to them are not forced to zero.
@@ -118,6 +133,10 @@ Internal stocks include a stock-change balance:
 ```text
 inputs - outputs - end_content + start_content = 0
 ```
+
+## Transfer coefficients
+
+A transfer coefficient needs at least one input and works best with more than one outlet. With exactly one input and one output, the balance and TC equation can over-constrain the system and force flows to zero.
 
 ## Troubleshooting
 
