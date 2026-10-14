@@ -11,17 +11,19 @@
   <div class="toolbar">
     <button id="addProcess">+ Process</button>
     <button id="addStock">+ Stock</button>
-    <button id="addSubsystem">+ Subsystem</button>
+    <button id="addSubsystem">+ Balance node</button>
     <button id="connectMode">Connect</button>
     <button id="deleteSel">Delete</button>
-    <button id="loadDemo">Load demo</button>
-    <button id="validate">Validate</button>
-    <button id="sankeyToggle">Sankey: off</button>
+    <button id="loadClean">Example: consistent</button>
+    <button id="loadConflict">Example: conflict</button>
+    <button id="validate">Check structure</button>
+    <button id="weightedToggle">Weighted flows: off</button>
     <button id="saveProject">Save project</button>
     <input type="file" id="openProject" accept=".json" hidden>
     <button id="openProjectBtn">Open project</button>
     <input type="file" id="importCsv" accept=".csv,.txt" hidden>
-    <button id="importCsvBtn">Import CSV</button>
+    <button id="importCsvBtn">Import CSV (flows)</button>
+    <button id="exportWorksheet">Export worksheet</button>
     <button id="exportJson">Solver JSON</button>
     <button id="solve">Solve</button>
   </div>
@@ -31,14 +33,22 @@
   <aside id="panel">
     <h2>Properties</h2>
     <div id="props"></div>
-    <h2>Validation</h2>
+    <h2>Preliminary structural check</h2>
     <div id="validation"></div>
     <h2>Solver</h2>
     <label>Model name<input id="modelName" value="SEFMN model"></label>
+    <label>Reference period<input id="periodLabel" value="Year 2026"></label>
     <label>Solver URL<input id="solverUrl" value="http://localhost:8080/solve"></label>
     <h2>Result</h2>
     <div id="resultTable"></div>
     <pre id="output"></pre>
+    <h2>Project worksheet</h2>
+    <label>Research question<textarea id="ws_question"></textarea></label>
+    <label>Spatial boundary<textarea id="ws_spatial"></textarea></label>
+    <label>Reference period<textarea id="ws_period"></textarea></label>
+    <label>Tracked goods, substances, energy<textarea id="ws_quantities"></textarea></label>
+    <label>Data sources and assumptions<textarea id="ws_sources"></textarea></label>
+    <label>Interpretation and optimization potential<textarea id="ws_interpretation"></textarea></label>
   </aside>
 </main>
 <script src="app.js"></script>

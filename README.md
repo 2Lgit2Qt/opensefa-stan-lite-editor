@@ -1,6 +1,6 @@
 # OpenSEFA STAN-lite Editor
 
-A dependency-free browser editor for multi-layer MFA/SEFA flow models, connected to the OpenSEFA.jl reconciliation solver.
+A dependency-free browser editor for multi-layer MFA/SEFA flow models, connected to the OpenSEFA.jl reconciliation solver. It is a learning and exploration companion for material-flow analysis, not a full replacement for STAN.
 
 ## Update your local copy
 
@@ -32,15 +32,7 @@ julia --project -e 'using Pkg; Pkg.update()'
 julia --project -e 'using Pkg; Pkg.precompile()'
 ```
 
-## Launch locally on an Apple-silicon (M1/M2/M3/M4) Mac
-
-### 1. Install Homebrew
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-### 2. Install Julia with Juliaup
+## Launch locally on an Apple-silicon Mac
 
 ```bash
 brew uninstall --cask julia
@@ -49,13 +41,7 @@ juliaup add 1.10
 juliaup default 1.10
 ```
 
-Close and reopen Terminal, then verify:
-
-```bash
-julia --version
-```
-
-### 3. Get the repositories
+Close and reopen Terminal, then:
 
 ```bash
 mkdir -p ~/Projects
@@ -64,7 +50,7 @@ git clone https://github.com/MatplusGmbH/opensefa-reconciliation-solver.git
 git clone https://github.com/2Lgit2Qt/opensefa-stan-lite-editor.git
 ```
 
-### 4. Start the solver — Terminal 1
+Terminal 1:
 
 ```bash
 cd ~/Projects/opensefa-reconciliation-solver
@@ -73,41 +59,43 @@ julia --project -e 'using Pkg; Pkg.precompile()'
 julia --project -e "using OpenSEFA; start_server()"
 ```
 
-Wait for `Started server: http://0.0.0.0:8080`.
-
-### 5. Start the editor — Terminal 2
+Terminal 2:
 
 ```bash
 cd ~/Projects/opensefa-stan-lite-editor
 python3 -m http.server 8000
 ```
 
-Open `http://localhost:8000`, click **Load demo**, then **Solve**.
+Open `http://localhost:8000`.
 
-## Features
+## Teaching examples
 
-- Processes, stocks, subsystems, directed flows, connect mode, and drag positioning.
-- Multiple layers with per-layer flow data, units, uncertainties, and transfer coefficients.
-- Per-layer balances for processes, subsystems, and internal stocks; stock start/end contents.
-- Concentration links between layers, exported as bilinear equations.
-- **Validation**: equation/unknown counts, TC-without-input errors, one-in/one-out TC warnings, invalid values and uncertainties.
-- **Uncertainty diagnostics**: normalized shift Δ/σ for measured variables; |Δ/σ| > 2 is highlighted.
-- **CSV import**: columns `name,layer,type,value,uncertainty,unit`; updates matching flows by name and layer.
-- **Unit conversion**: mass (t, kg, g, lb) and energy (MJ, GJ, kWh, MWh) conversion in the flow panel.
-- **Sankey view**: toggle scales flow widths by active-layer reconciled or entered values.
-- Autosave, project save/open, solver-JSON export, and result diagnostics.
+- **Example: consistent** — 100 t/a input, 50 t/a main output with transfer coefficient 0.5, and an unmeasured loss output. Use it to study conservation and transfer coefficients.
+- **Example: conflict** — layered goods/phosphorus model with intentionally inconsistent measurements. Use it to discuss how reconciliation exposes tension between data and model assumptions.
 
-## Boundary stocks
+A large Δ/σ means reconciliation had to adjust a measured value substantially. It signals tension among data and model assumptions; it does not by itself prove which input is wrong.
 
-Mark a stock as **Boundary stock** for system inputs/outputs; it has no balance equation. Internal stocks use:
+## Course worksheet
 
-```text
-inputs - outputs - end_content + start_content = 0
+The worksheet records research question, spatial boundary, reference period, tracked quantities, sources and assumptions, and interpretation. Save it with the project or export it as Markdown for the seminar paper.
+
+## Reliability notes
+
+- Unit conversion changes both value and uncertainty and only converts within mass or energy.
+- The structural check is preliminary; it does not prove observability, redundancy, or feasibility.
+- Balance nodes are simplified: they do not contain nested internal models.
+- Stock contents are quantities; connected flows are rates over the reference period.
+- The weighted-flow view scales straight arrows; it is not a full Sankey layout.
+- CSV import updates existing flows only; it does not import Excel files or create flows.
+
+## Solver connection
+
+Use `http://localhost:8080/solve` and start the solver with:
+
+```bash
+cd ~/Projects/opensefa-reconciliation-solver
+julia --project -e "using OpenSEFA; start_server()"
 ```
-
-## Transfer coefficients
-
-A TC needs at least one input. With exactly one input and one output, the balance and TC equation over-constrain the system; add a loss/split outlet.
 
 ## Troubleshooting
 
