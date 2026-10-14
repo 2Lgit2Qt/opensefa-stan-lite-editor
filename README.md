@@ -4,7 +4,7 @@ A dependency-free browser editor for multi-layer MFA/SEFA flow models, connected
 
 ## Launch locally on an Apple-silicon (M1/M2/M3/M4) Mac
 
-### 1. Install Homebrew and prerequisites
+### 1. Install Homebrew
 
 Open **Terminal** and run:
 
@@ -12,23 +12,32 @@ Open **Terminal** and run:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-Then install Julia and Git:
+### 2. Install Julia with Juliaup
+
+If you previously installed Julia with Homebrew, remove it first to avoid conflicts:
 
 ```bash
-brew install --cask julia
-brew install git
+brew uninstall --cask julia
 ```
 
-Verify:
+Install Juliaup and Julia 1.10 LTS:
 
 ```bash
+brew install juliaup
+juliaup add 1.10
+juliaup default 1.10
+```
+
+Close and reopen Terminal, then verify:
+
+```bash
+which julia
 julia --version
-git --version
 ```
 
-Julia must be version 1.10 or later.
+`julia --version` should report `1.10.x`.
 
-### 2. Get the two repositories
+### 3. Get the two repositories
 
 ```bash
 mkdir -p ~/Projects
@@ -37,14 +46,16 @@ git clone https://github.com/MatplusGmbH/opensefa-reconciliation-solver.git
 git clone https://github.com/2Lgit2Qt/opensefa-stan-lite-editor.git
 ```
 
-### 3. Start the OpenSEFA solver — Terminal 1
+### 4. Start the OpenSEFA solver — Terminal 1
 
 ```bash
 cd ~/Projects/opensefa-reconciliation-solver
+julia --project -e 'using Pkg; Pkg.instantiate()'
+julia --project -e 'using Pkg; Pkg.precompile()'
 julia --project -e "using OpenSEFA; start_server()"
 ```
 
-The first run downloads and precompiles Julia packages and can take several minutes. When it is ready you should see output similar to:
+The first run downloads and precompiles Julia packages and can take several minutes. When ready, you should see output similar to:
 
 ```text
 Started server: http://0.0.0.0:8080
@@ -52,61 +63,62 @@ Started server: http://0.0.0.0:8080
 
 Leave this Terminal window open.
 
-### 4. Start the editor — Terminal 2
+### 5. Start the editor — Terminal 2
 
-Open a **second** Terminal window (`Cmd+N` in Terminal), then run:
+Open a second Terminal window (`Cmd+N`), then run:
 
 ```bash
 cd ~/Projects/opensefa-stan-lite-editor
 python3 -m http.server 8000
 ```
 
-macOS includes Python 3. If `python3` is missing, install it with:
+If `python3` is missing:
 
 ```bash
 brew install python
 ```
 
-Then open this address in Safari or Chrome:
+Then open:
 
 ```text
 http://localhost:8000
 ```
 
-### 5. Solve the demo model
+### 6. Solve the demo model
 
 1. Click **Load demo**.
-2. Confirm the Solver URL is:
-
-```text
-http://localhost:8080/solve
-```
-
+2. Confirm the Solver URL is `http://localhost:8080/solve`.
 3. Click **Solve**.
 
 ## Troubleshooting
 
-- **CORS or network error in the browser:** Do not open `index.html` directly with `file://`. Always serve the editor with `python3 -m http.server 8000`.
-- **Port 8080 already in use:** Find and stop the process:
+### `failed to find source of parent package: StructUtils`
+
+This usually means Julia is too new for the project’s locked dependencies. Use Julia 1.10 through Juliaup:
 
 ```bash
-lsof -i :8080
-kill -9 <PID>
+brew install juliaup
+juliaup add 1.10
+juliaup default 1.10
 ```
 
-Then restart the Julia server.
-
-- **Port 8000 already in use:** Use another port:
+Close and reopen Terminal, then rebuild:
 
 ```bash
-python3 -m http.server 8081
+cd ~/Projects/opensefa-reconciliation-solver
+rm -rf ~/.julia/compiled
+julia --project -e 'using Pkg; Pkg.instantiate()'
+julia --project -e 'using Pkg; Pkg.precompile()'
+julia --project -e "using OpenSEFA; start_server()"
 ```
 
-Then open `http://localhost:8081`.
+### Other issues
 
-- **First Julia start is slow:** This is normal; Julia downloads and precompiles dependencies once.
-- **`julia: command not found`:** Install it with `brew install --cask julia`, then open a new Terminal window and try again.
-- **Solver returns an error:** Click **Solver JSON** in the editor to inspect the exact payload sent to `/solve`.
+- **CORS or network error in the browser:** Do not open `index.html` via `file://`; serve it with `python3 -m http.server 8000`.
+- **Port 8080 in use:** Run `lsof -i :8080`, stop that process (`kill -9 <PID>`), and restart the Julia server.
+- **Port 8000 in use:** Use `python3 -m http.server 8081` and open `http://localhost:8081`.
+- **`julia: command not found`:** Open a new Terminal window after installing Juliaup, or run `exec zsh`.
+- **Solver returns an error:** Click **Solver JSON** in the editor to inspect the payload sent to `/solve`.
 
 ## Features
 
