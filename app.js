@@ -11,13 +11,14 @@ function addNode(type){
 
 function addFlow(from,to){
   if(from===to)return;
-  const f={id:'f'+state.nextId++,name:'F'+(state.flows.length+1),from,to,type:'unmeasured',value:0,uncertainty:0.1};
+  const f={id:'f'+state.nextId++,name:'F'+(state.flows.length+1),from,to,type:'unmeasured',value:0,uncertainty:0.1,tcEnabled:false,tcType:'measured',tcValue:0.5,tcUnc:0.05};
   state.flows.push(f);select({kind:'flow',id:f.id});render();
 }
 
 function select(sel){state.selected=sel;renderPanel();render();}
 
 function getNode(id){return state.nodes.find(n=>n.id===id);}
+function tcName(f){return f.name+'_tc';}
 
 function render(){
   svg.innerHTML='';
@@ -32,7 +33,7 @@ function render(){
     line.addEventListener('click',()=>select({kind:'flow',id:f.id}));
     svg.appendChild(line);
     const mid=el('text',{x:(a.x+b.x)/2,y:(a.y+b.y)/2-6,'font-size':'12','text-anchor':'middle'});
-    mid.textContent=f.name;svg.appendChild(mid);
+    mid.textContent=f.name+(f.tcEnabled?' [tc]':'');svg.appendChild(mid);
   });
 
   state.nodes.forEach(n=>{
@@ -50,8 +51,29 @@ function renderPanel(){
   if(!state.selected){p.innerHTML='<p>Select a node or flow.</p>';return;}
   if(state.selected.kind==='node'){
     const n=getNode(state.selected.id);
-    p.innerHTML=`<label>Name<input id="pName" value="${n.name}"></label><p>Type: ${n.type}</p>`;
+    const outs=state.flows.filter(f=>f.from===n.id);
+    let html=`<label>Name<input id="pName" value="${n.name}"></label><p>Type: ${n.type}</p>`;
+    if(n.type==='process'){
+      html+='<h3>Transfer coefficients</h3>';
+      if(!outs.length)html+='<p>No outgoing flows.</p>';
+      outs.forEach(f=>{
+        html+=`<h4>${f.name}</h4>
+        <label><input type="checkbox" id="tc_${f.id}" ${f.tcEnabled?'checked':''}> Use transfer coefficient</label>
+        <div id="tcbox_${f.id}" style="display:${f.tcEnabled?'block':'none'}">
+          <label>Type<select id="tct_${f.id}"><option${f.tcType==='measured'?' selected':''}>measured</option><option${f.tcType==='unmeasured'?' selected':''}>unmeasured</option><option${f.tcType==='fixed'?' selected':''}>fixed</option></select></label>
+          <label>Value<input id="tcv_${f.id}" type="number" step="0.01" value="${f.tcValue}"></label>
+          <label>Uncertainty<input id="tcu_${f.id}" type="number" step="0.01" value="${f.tcUnc}"></label>
+        </div>`;
+      });
+    }
+    p.innerHTML=html;
     document.getElementById('pName').oninput=e=>{n.name=e.target.value;render();};
+    outs.forEach(f=>{
+      document.getElementById('tc_'+f.id).onchange=e=>{f.tcEnabled=e.target.checked;render();renderPanel();};
+      document.getElementById('tct_'+f.id).onchange=e=>f.tcType=e.target.value;
+      document.getElementById('tcv_'+f.id).oninput=e=>f.tcValue=+e.target.value;
+      document.getElementById('tcu_'+f.id).oninput=e=>f.tcUnc=+e.target.value;
+    });
   }else{
     const f=state.flows.find(x=>x.id===state.selected.id);
     p.innerHTML=`<label>Name<input id="fName" value="${f.name}"></label>
@@ -74,13 +96,30 @@ function exportModel(){
     else v.type='UnmeasuredVariable';
     return v;
   });
-  const equations=state.nodes.filter(n=>n.type==='process').map(n=>{
+  state.flows.forEach(f=>{
+    if(!f.tcEnabled)return;
+    const v={name:tcName(f),is_transfer_coefficient:true};
+    if(f.tcType==='measured'){v.type='MeasuredVariable';v.value=f.tcValue;v.uncertainty=f.tcUnc;}
+    else if(f.tcType==='fixed'){v.type='FixedVariable';v.value=f.tcValue;}
+    else v.type='UnmeasuredVariable';
+    variables.push(v);
+  });
+  const equations=[];
+  state.nodes.filter(n=>n.type==='process').forEach(n=>{
     const linear_terms=[];
     state.flows.forEach(f=>{
       if(f.to===n.id)linear_terms.push({name:f.name,factor:1});
       if(f.from===n.id)linear_terms.push({name:f.name,factor:-1});
     });
-    return {constant_term:{value:0},linear_terms,bilinear_terms:[]};
+    equations.push({constant_term:{value:0},linear_terms,bilinear_terms:[]});
+    const inputs=state.flows.filter(f=>f.to===n.id);
+    state.flows.filter(f=>f.from===n.id&&f.tcEnabled).forEach(f=>{
+      equations.push({
+        constant_term:{value:0},
+        linear_terms:[{name:f.name,factor:1}],
+        bilinear_terms:inputs.map(i=>({name1:tcName(f),name2:i.name,factor:-1}))
+      });
+    });
   });
   return {content:{name:'SEFMN model',variables,equations,solver:'JuMP'}};
 }
@@ -101,10 +140,10 @@ document.getElementById('loadDemo').onclick=()=>{
   const s1={id:'n1',type:'stock',name:'S1',x:80,y:150},p1={id:'n2',type:'process',name:'P1',x:260,y:150},p2={id:'n3',type:'process',name:'P2',x:440,y:150},p3={id:'n4',type:'process',name:'P3',x:620,y:150},s2={id:'n5',type:'stock',name:'S2',x:800,y:150};
   state.nodes=[s1,p1,p2,p3,s2];
   state.flows=[
-    {id:'f1',name:'F1',from:'n1',to:'n2',type:'measured',value:100,uncertainty:10},
-    {id:'f2',name:'F2',from:'n2',to:'n3',type:'unmeasured',value:0,uncertainty:0.1},
-    {id:'f3',name:'F3',from:'n3',to:'n4',type:'measured',value:160,uncertainty:16},
-    {id:'f4',name:'F4',from:'n4',to:'n5',type:'unmeasured',value:0,uncertainty:0.1}];
+    {id:'f1',name:'F1',from:'n1',to:'n2',type:'measured',value:100,uncertainty:10,tcEnabled:false,tcType:'measured',tcValue:0.5,tcUnc:0.05},
+    {id:'f2',name:'F2',from:'n2',to:'n3',type:'unmeasured',value:0,uncertainty:0.1,tcEnabled:true,tcType:'measured',tcValue:0.5,tcUnc:0.05},
+    {id:'f3',name:'F3',from:'n3',to:'n4',type:'measured',value:160,uncertainty:16,tcEnabled:false,tcType:'measured',tcValue:0.5,tcUnc:0.05},
+    {id:'f4',name:'F4',from:'n4',to:'n5',type:'unmeasured',value:0,uncertainty:0.1,tcEnabled:false,tcType:'measured',tcValue:0.5,tcUnc:0.05}];
   state.nextId=6;render();renderPanel();
 };
 render();renderPanel();
