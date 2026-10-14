@@ -4,8 +4,6 @@ A dependency-free browser editor for multi-layer MFA/SEFA flow models, connected
 
 ## Update your local copy
 
-To get the latest editor and solver changes:
-
 ```bash
 cd ~/Projects/opensefa-stan-lite-editor
 git pull
@@ -14,9 +12,9 @@ cd ~/Projects/opensefa-reconciliation-solver
 git pull
 ```
 
-Then hard-refresh the browser with `Cmd+Shift+R` so it loads the updated JavaScript instead of a cached copy.
+Then hard-refresh the browser with `Cmd+Shift+R`.
 
-If you changed files locally and `git pull` refuses:
+If you changed files locally:
 
 ```bash
 git stash
@@ -24,7 +22,7 @@ git pull
 git stash pop
 ```
 
-To update Julia itself and its packages:
+Update Julia and packages:
 
 ```bash
 juliaup update
@@ -38,23 +36,14 @@ julia --project -e 'using Pkg; Pkg.precompile()'
 
 ### 1. Install Homebrew
 
-Open **Terminal** and run:
-
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 ### 2. Install Julia with Juliaup
 
-If you previously installed Julia with Homebrew, remove it first to avoid conflicts:
-
 ```bash
 brew uninstall --cask julia
-```
-
-Install Juliaup and Julia 1.10 LTS:
-
-```bash
 brew install juliaup
 juliaup add 1.10
 juliaup default 1.10
@@ -63,13 +52,10 @@ juliaup default 1.10
 Close and reopen Terminal, then verify:
 
 ```bash
-which julia
 julia --version
 ```
 
-`julia --version` should report `1.10.x`.
-
-### 3. Get the two repositories
+### 3. Get the repositories
 
 ```bash
 mkdir -p ~/Projects
@@ -78,7 +64,7 @@ git clone https://github.com/MatplusGmbH/opensefa-reconciliation-solver.git
 git clone https://github.com/2Lgit2Qt/opensefa-stan-lite-editor.git
 ```
 
-### 4. Start the OpenSEFA solver — Terminal 1
+### 4. Start the solver — Terminal 1
 
 ```bash
 cd ~/Projects/opensefa-reconciliation-solver
@@ -87,48 +73,33 @@ julia --project -e 'using Pkg; Pkg.precompile()'
 julia --project -e "using OpenSEFA; start_server()"
 ```
 
-The first run downloads and precompiles Julia packages and can take several minutes. When ready, you should see output similar to:
-
-```text
-Started server: http://0.0.0.0:8080
-```
-
-Leave this Terminal window open.
+Wait for `Started server: http://0.0.0.0:8080`.
 
 ### 5. Start the editor — Terminal 2
-
-Open a second Terminal window (`Cmd+N`), then run:
 
 ```bash
 cd ~/Projects/opensefa-stan-lite-editor
 python3 -m http.server 8000
 ```
 
-If `python3` is missing:
+Open `http://localhost:8000`, click **Load demo**, then **Solve**.
 
-```bash
-brew install python
-```
+## Features
 
-Then open:
-
-```text
-http://localhost:8000
-```
-
-### 6. Solve the demo model
-
-1. Click **Load demo**.
-2. Confirm the Solver URL is `http://localhost:8080/solve`.
-3. Click **Solve**.
-
-The demo has a loss outlet at P1 so the transfer coefficient is not over-constrained.
+- Processes, stocks, subsystems, directed flows, connect mode, and drag positioning.
+- Multiple layers with per-layer flow data, units, uncertainties, and transfer coefficients.
+- Per-layer balances for processes, subsystems, and internal stocks; stock start/end contents.
+- Concentration links between layers, exported as bilinear equations.
+- **Validation**: equation/unknown counts, TC-without-input errors, one-in/one-out TC warnings, invalid values and uncertainties.
+- **Uncertainty diagnostics**: normalized shift Δ/σ for measured variables; |Δ/σ| > 2 is highlighted.
+- **CSV import**: columns `name,layer,type,value,uncertainty,unit`; updates matching flows by name and layer.
+- **Unit conversion**: mass (t, kg, g, lb) and energy (MJ, GJ, kWh, MWh) conversion in the flow panel.
+- **Sankey view**: toggle scales flow widths by active-layer reconciled or entered values.
+- Autosave, project save/open, solver-JSON export, and result diagnostics.
 
 ## Boundary stocks
 
-Stocks can be marked as **Boundary stock (no balance equation)**. Use boundary stocks for system inputs and outputs: flows connected to them are not forced to zero.
-
-Internal stocks include a stock-change balance:
+Mark a stock as **Boundary stock** for system inputs/outputs; it has no balance equation. Internal stocks use:
 
 ```text
 inputs - outputs - end_content + start_content = 0
@@ -136,13 +107,13 @@ inputs - outputs - end_content + start_content = 0
 
 ## Transfer coefficients
 
-A transfer coefficient needs at least one input and works best with more than one outlet. With exactly one input and one output, the balance and TC equation can over-constrain the system and force flows to zero.
+A TC needs at least one input. With exactly one input and one output, the balance and TC equation over-constrain the system; add a loss/split outlet.
 
 ## Troubleshooting
 
 ### `failed to find source of parent package: StructUtils`
 
-This usually means Julia is too new for the project’s locked dependencies. Use Julia 1.10 through Juliaup:
+Use Julia 1.10 via Juliaup:
 
 ```bash
 brew install juliaup
@@ -150,7 +121,7 @@ juliaup add 1.10
 juliaup default 1.10
 ```
 
-Close and reopen Terminal, then rebuild:
+Then:
 
 ```bash
 cd ~/Projects/opensefa-reconciliation-solver
@@ -162,19 +133,9 @@ julia --project -e "using OpenSEFA; start_server()"
 
 ### Other issues
 
-- **CORS or network error in the browser:** Do not open `index.html` via `file://`; serve it with `python3 -m http.server 8000`.
-- **Port 8080 in use:** Run `lsof -i :8080`, stop that process (`kill -9 <PID>`), and restart the Julia server.
-- **Port 8000 in use:** Use `python3 -m http.server 8081` and open `http://localhost:8081`.
-- **`julia: command not found`:** Open a new Terminal window after installing Juliaup, or run `exec zsh`.
-- **Solver returns an error:** Click **Solver JSON** in the editor to inspect the payload sent to `/solve`.
-
-## Features
-
-- Processes, stocks, subsystems, directed flows, connect mode, and drag positioning.
-- Multiple layers with per-layer flow data, units, uncertainties, and transfer coefficients.
-- Per-layer balances for processes, subsystems, and internal stocks; stock start/end contents.
-- Concentration links between layers, exported as bilinear equations.
-- Autosave, project save/open, solver-JSON export, and result diagnostics.
+- **CORS error:** serve the editor with `python3 -m http.server 8000`; never use `file://`.
+- **Port 8080 in use:** `lsof -i :8080`, then `kill -9 <PID>`.
+- **Port 8000 in use:** `python3 -m http.server 8081` and open `http://localhost:8081`.
 
 ## License
 

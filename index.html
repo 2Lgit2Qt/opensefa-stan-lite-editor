@@ -15,9 +15,13 @@
     <button id="connectMode">Connect</button>
     <button id="deleteSel">Delete</button>
     <button id="loadDemo">Load demo</button>
+    <button id="validate">Validate</button>
+    <button id="sankeyToggle">Sankey: off</button>
     <button id="saveProject">Save project</button>
     <input type="file" id="openProject" accept=".json" hidden>
     <button id="openProjectBtn">Open project</button>
+    <input type="file" id="importCsv" accept=".csv,.txt" hidden>
+    <button id="importCsvBtn">Import CSV</button>
     <button id="exportJson">Solver JSON</button>
     <button id="solve">Solve</button>
   </div>
@@ -27,6 +31,8 @@
   <aside id="panel">
     <h2>Properties</h2>
     <div id="props"></div>
+    <h2>Validation</h2>
+    <div id="validation"></div>
     <h2>Solver</h2>
     <label>Model name<input id="modelName" value="SEFMN model"></label>
     <label>Solver URL<input id="solverUrl" value="http://localhost:8080/solve"></label>
