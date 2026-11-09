@@ -7,50 +7,116 @@
 </head>
 <body>
 <header>
-  <h1>OpenSEFA STAN-lite Editor</h1>
-  <div class="toolbar">
-    <button id="addProcess">+ Process</button>
-    <button id="addStock">+ Stock</button>
-    <button id="addSubsystem">+ Balance node</button>
-    <button id="connectMode">Connect</button>
-    <button id="deleteSel">Delete</button>
-    <button id="loadClean">Example: consistent</button>
-    <button id="loadConflict">Example: conflict</button>
-    <button id="validate">Check structure</button>
-    <button id="weightedToggle">Weighted flows: off</button>
-    <button id="saveProject">Save project</button>
-    <input type="file" id="openProject" accept=".json" hidden>
-    <button id="openProjectBtn">Open project</button>
-    <input type="file" id="importCsv" accept=".csv,.txt" hidden>
-    <button id="importCsvBtn">Import CSV (flows)</button>
-    <button id="exportWorksheet">Export worksheet</button>
-    <button id="exportJson">Solver JSON</button>
-    <button id="solve">Solve</button>
+  <div id="menubar">
+    <div class="menu"><button data-i18n="file">File</button>
+      <div class="dropdown">
+        <button id="miNew" data-i18n="new">New</button>
+        <button id="miOpen" data-i18n="open">Open</button>
+        <button id="miSave" data-i18n="save">Save project</button>
+        <hr>
+        <button id="miClean">Example: consistent</button>
+        <button id="miConflict">Example: conflict</button>
+        <hr>
+        <button id="miWorksheet">Export worksheet</button>
+        <button id="miJson">Export solver JSON</button>
+      </div>
+    </div>
+    <div class="menu"><button data-i18n="edit">Edit</button>
+      <div class="dropdown">
+        <button id="miUndo" data-i18n="undo">Undo</button>
+        <button id="miRedo" data-i18n="redo">Redo</button>
+        <button id="miFind" data-i18n="find">Find objects</button>
+        <button id="miDelete" data-i18n="del">Delete</button>
+        <hr>
+        <button id="miCsv">Import CSV (flows)</button>
+      </div>
+    </div>
+    <div class="menu"><button data-i18n="view">View</button>
+      <div class="dropdown">
+        <button id="miGrid" data-i18n="grid">Grid</button>
+        <button id="miSnap" data-i18n="snap">Snap to grid</button>
+        <button id="miZoomIn" data-i18n="zoomIn">Zoom in</button>
+        <button id="miZoomOut" data-i18n="zoomOut">Zoom out</button>
+        <hr>
+        <button id="miLang">Sprache: Deutsch / English</button>
+      </div>
+    </div>
+    <div class="menu"><button data-i18n="extras">Extras</button>
+      <div class="dropdown">
+        <button id="miReset">Reset settings</button>
+      </div>
+    </div>
+  </div>
+  <div id="toolbars">
+    <div class="tbgroup">
+      <button id="tbNew" data-i18n="new">New</button>
+      <button id="tbOpen" data-i18n="open">Open</button>
+      <button id="tbSave" data-i18n="save">Save</button>
+      <button id="tbUndo" data-i18n="undo">Undo</button>
+      <button id="tbRedo" data-i18n="redo">Redo</button>
+      <button id="tbFind" data-i18n="find">Find</button>
+    </div>
+    <div class="tbgroup">
+      <button id="tbGrid" data-i18n="grid">Grid</button>
+      <button id="tbSnap" data-i18n="snap">Snap</button>
+      <button id="tbZoomIn">+</button>
+      <button id="tbZoomOut">−</button>
+    </div>
+    <div class="tbgroup">
+      <label class="inlbl" data-i18n="layers">Layers</label>
+      <select id="layerSelect"></select>
+      <button id="tbAddLayer">+</button>
+      <label class="inlbl" data-i18n="period">Period</label>
+      <input id="periodLabel" value="Year 2026">
+      <button id="tbCsv">CSV</button>
+      <button id="tbValidate" data-i18n="validation">Check structure</button>
+      <button id="tbSolve" data-i18n="solve">Calculate</button>
+    </div>
+    <div class="tbgroup">
+      <button id="tbSankey" data-i18n="sankey">Show as Sankey</button>
+      <button id="tbDisplay" data-i18n="calculated">Calculated</button>
+    </div>
   </div>
 </header>
 <main>
-  <svg id="canvas"></svg>
-  <aside id="panel">
-    <h2>Properties</h2>
-    <div id="props"></div>
-    <h2>Preliminary structural check</h2>
-    <div id="validation"></div>
-    <h2>Solver</h2>
-    <label>Model name<input id="modelName" value="SEFMN model"></label>
-    <label>Reference period<input id="periodLabel" value="Year 2026"></label>
-    <label>Solver URL<input id="solverUrl" value="http://localhost:8080/solve"></label>
-    <h2>Result</h2>
-    <div id="resultTable"></div>
-    <pre id="output"></pre>
-    <h2>Project worksheet</h2>
-    <label>Research question<textarea id="ws_question"></textarea></label>
-    <label>Spatial boundary<textarea id="ws_spatial"></textarea></label>
-    <label>Reference period<textarea id="ws_period"></textarea></label>
-    <label>Tracked goods, substances, energy<textarea id="ws_quantities"></textarea></label>
-    <label>Data sources and assumptions<textarea id="ws_sources"></textarea></label>
-    <label>Interpretation and optimization potential<textarea id="ws_interpretation"></textarea></label>
+  <aside id="left">
+    <div class="pane">
+      <h3 data-i18n="explorer">Model Explorer</h3>
+      <div id="explorer"></div>
+    </div>
+    <div class="pane">
+      <h3 data-i18n="shapes">Shapes</h3>
+      <div id="shapes">
+        <button id="shSelect" data-i18n="select">Selection mode</button>
+        <button id="shProcess" data-i18n="process">Process</button>
+        <button id="shStock" data-i18n="stock">Stock</button>
+        <button id="shConnect" data-i18n="connect">Internal flow</button>
+        <button id="shDelete" data-i18n="del">Delete</button>
+      </div>
+    </div>
+  </aside>
+  <div id="canvasWrap">
+    <svg id="canvas"></svg>
+  </div>
+  <aside id="right">
+    <div class="pane">
+      <h3 data-i18n="properties">Properties</h3>
+      <div id="propTabs"></div>
+      <div id="props"></div>
+    </div>
+    <div class="pane">
+      <h3 data-i18n="trace">Trace Output</h3>
+      <div id="traceBar"><button id="traceClear" data-i18n="clear">Clear</button></div>
+      <div id="traceList"></div>
+    </div>
   </aside>
 </main>
+<div id="findBox" hidden>
+  <input id="findInput" placeholder="Search term">
+  <div id="findResults"></div>
+</div>
+<input type="file" id="openProject" accept=".json" hidden>
+<input type="file" id="importCsv" accept=".csv,.txt" hidden>
 <script src="app.js"></script>
 </body>
 </html>
