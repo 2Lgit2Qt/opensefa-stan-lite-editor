@@ -1,6 +1,6 @@
 # OpenSEFA STAN-lite Editor
 
-A dependency-free browser editor for multi-layer MFA/SEFA flow models, connected to the OpenSEFA.jl reconciliation solver. It is a learning and exploration companion for material-flow analysis, not a full replacement for STAN.
+A browser-based MFA/SFA modeling workspace connected to the OpenSEFA.jl reconciliation solver, built to mirror the STAN 2.8 workflow. See ROADMAP.md for full STAN parity status and milestone plan (M1–M8).
 
 ## Update your local copy
 
@@ -12,118 +12,45 @@ cd ~/Projects/opensefa-reconciliation-solver
 git pull
 ```
 
-Then hard-refresh the browser with `Cmd+Shift+R`.
+Hard-refresh the browser with Cmd+Shift+R after updating.
 
-If you changed files locally:
+## Launch locally (Apple-silicon Mac)
 
-```bash
-git stash
-git pull
-git stash pop
-```
-
-Update Julia and packages:
-
-```bash
-juliaup update
-juliaup default 1.10
-cd ~/Projects/opensefa-reconciliation-solver
-julia --project -e 'using Pkg; Pkg.update()'
-julia --project -e 'using Pkg; Pkg.precompile()'
-```
-
-## Launch locally on an Apple-silicon Mac
-
-```bash
-brew uninstall --cask julia
-brew install juliaup
-juliaup add 1.10
-juliaup default 1.10
-```
-
-Close and reopen Terminal, then:
-
-```bash
-mkdir -p ~/Projects
-cd ~/Projects
-git clone https://github.com/MatplusGmbH/opensefa-reconciliation-solver.git
-git clone https://github.com/2Lgit2Qt/opensefa-stan-lite-editor.git
-```
-
-Terminal 1:
+Terminal 1 — solver:
 
 ```bash
 cd ~/Projects/opensefa-reconciliation-solver
-julia --project -e 'using Pkg; Pkg.instantiate()'
-julia --project -e 'using Pkg; Pkg.precompile()'
 julia --project -e "using OpenSEFA; start_server()"
 ```
 
-Terminal 2:
+Terminal 2 — editor:
 
 ```bash
 cd ~/Projects/opensefa-stan-lite-editor
 python3 -m http.server 8000
 ```
 
-Open `http://localhost:8000`.
+Open http://localhost:8000.
 
-## Teaching examples
+## Workspace (M1)
 
-- **Example: consistent** — 100 t/a input, 50 t/a main output with transfer coefficient 0.5, and an unmeasured loss output. Use it to study conservation and transfer coefficients.
-- **Example: conflict** — layered goods/phosphorus model with intentionally inconsistent measurements. Use it to discuss how reconciliation exposes tension between data and model assumptions.
+- Menu bar: File, Edit, View, Extras with hover dropdowns
+- Toolbars: STANDARD (New/Open/Save/Undo/Redo/Find), DIAGRAM (Grid/Snap/Zoom), DATA INPUT (layer select, period, CSV, Check structure, Calculate), SANKEY (Show as Sankey, Entered/Calculated display)
+- Model Explorer: hierarchical tree of the system; processes expand to their in/out flows; clicking selects the object in diagram and Properties
+- Shapes window: Selection mode, Process, Stock, Internal flow (Connect), Delete
+- Properties window: tabbed (System/Worksheet when nothing is selected; General/Values for nodes and flows)
+- Trace Output: messages and warnings from validation and calculation; click a message to select the referenced object; Clear button
+- Canvas: zoom (Ctrl+F11/Ctrl+F12), grid, snap-to-grid on move, marquee selection, Ctrl+click multi-select, group move
+- Keyboard shortcuts: F5 Calculate, Ctrl+N/O/S/Z/Y, Ctrl+F find, Ctrl+C/V copy/paste objects, Del delete, Esc cancel modes
+- German/English UI language (View menu; defaults to system language)
 
-A large Δ/σ means reconciliation had to adjust a measured value substantially. It signals tension among data and model assumptions; it does not by itself prove which input is wrong.
-
-## Course worksheet
-
-The worksheet records research question, spatial boundary, reference period, tracked quantities, sources and assumptions, and interpretation. Save it with the project or export it as Markdown for the seminar paper.
-
-## Reliability notes
-
-- Unit conversion changes both value and uncertainty and only converts within mass or energy.
-- The structural check is preliminary; it does not prove observability, redundancy, or feasibility.
-- Balance nodes are simplified: they do not contain nested internal models.
-- Stock contents are quantities; connected flows are rates over the reference period.
-- The weighted-flow view scales straight arrows; it is not a full Sankey layout.
-- CSV import updates existing flows only; it does not import Excel files or create flows.
-
-## Solver connection
-
-Use `http://localhost:8080/solve` and start the solver with:
-
-```bash
-cd ~/Projects/opensefa-reconciliation-solver
-julia --project -e "using OpenSEFA; start_server()"
-```
+All prior modeling features are preserved: layers, transfer coefficients, concentration links, stocks, validation, CSV import, teaching examples, worksheet, solver connection.
 
 ## Troubleshooting
 
-### `failed to find source of parent package: StructUtils`
-
-Use Julia 1.10 via Juliaup:
-
-```bash
-brew install juliaup
-juliaup add 1.10
-juliaup default 1.10
-```
-
-Then:
-
-```bash
-cd ~/Projects/opensefa-reconciliation-solver
-rm -rf ~/.julia/compiled
-julia --project -e 'using Pkg; Pkg.instantiate()'
-julia --project -e 'using Pkg; Pkg.precompile()'
-julia --project -e "using OpenSEFA; start_server()"
-```
-
-### Other issues
-
 - **CORS error:** serve the editor with `python3 -m http.server 8000`; never use `file://`.
-- **Port 8080 in use:** `lsof -i :8080`, then `kill -9 <PID>`.
-- **Port 8000 in use:** `python3 -m http.server 8081` and open `http://localhost:8081`.
+- **`julia: command not found` or StructUtils error:** install Julia 1.10 via Juliaup (`brew install juliaup; juliaup add 1.10; juliaup default 1.10`), then rebuild with `Pkg.instantiate()` and `Pkg.precompile()`.
+- **Reset everything:** Extras → Reset settings clears the browser storage and reloads.
 
 ## License
 
