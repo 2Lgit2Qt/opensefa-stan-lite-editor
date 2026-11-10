@@ -20,6 +20,9 @@
         <hr>
         <button id="miWorksheet">Export worksheet</button>
         <button id="miJson">Export solver JSON</button>
+        <hr>
+        <button id="miExportSvg">Export diagram (SVG)</button>
+        <button id="miExportPng">Export diagram (PNG)</button>
       </div>
     </div>
     <div class="menu"><button data-i18n="edit">Edit</button>
@@ -84,6 +87,8 @@
     </div>
     <div class="tbgroup">
       <button id="tbSankey" data-i18n="sankey">Show as Sankey</button>
+      <label class="inlbl">Width</label>
+      <input type="range" id="tbSankeyWidth" min="5" max="50" value="20" style="width:60px">
       <button id="tbDisplay" data-i18n="calculated">Calculated</button>
       <button id="tbUnitsMode">Units: entered</button>
     </div>

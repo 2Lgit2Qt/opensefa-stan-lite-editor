@@ -34,24 +34,21 @@ Open http://localhost:8000.
 
 ## Milestones completed
 
-- **M1 — Workspaces**: menu bar, STAN toolbars, Model Explorer, Shapes, tabbed Properties, Trace Output, zoom/grid/snap, multi-select, copy/paste, find, undo/redo, STAN shortcuts, German/English UI.
-- **M2 — Model building**: system boundary with Σ sums, import/export/internal flow types, true subsystems (six levels), flow routing, movable labels, short symbols, text fields.
-- **M3 — Layers, materials, periods, units**: material catalog and custom materials, substance/subgood/energy layers, per-period data entry with period records, STAN stock equation across periods, subgood mode, editable unit families with per-layer display units.
-- **M4 — Data entry and documentation**: per-value literature references and remarks with References manager and worksheet literature section; percent uncertainty entry; volume flow and density on the goods layer; per-period per-layer concentration.
-- **M5 — Data Explorer and exchange**: tabbed Data Explorer (Ctrl+D) with Flow values, TCs, Stocks, Concentrations, and Processes; editable grid; grouping; sortable columns; entered vs calculated toggle; error-row marking; Copy TSV; Export CSV; Paste block.
-- **M6 — Calculation**: Calculation dialog via Alt+F5 (trace level, period range, equation dump); F5 quick calculation; coarse balance under process labels; per-process exclusion from goods-layer balancing with bracketed names; gross-error check against the 95% confidence criterion; standard-score histogram; scaling basis (unit + factor + mode: none / scaling factor / Σ imports / Σ exports) with values in the result table divided by the selected reference; entered vs calculated data toggle.
+- **M1 — Workspaces**
+- **M2 — Model building**
+- **M3 — Layers, materials, periods, units**
+- **M4 — Data entry and documentation**
+- **M5 — Data Explorer and exchange**
+- **M6 — Calculation**
+- **M7 — Presentation**: Sankey mode with curved quadratic Bézier flow paths, rounded line caps, and a width slider (5–50 px); legend showing layer, unit, entered/calculated mode, display unit, and scaling info (scaling unit ÷ factor); Σ imports/exports/stock change scaled by the active scaling basis; SVG diagram export via File → Export diagram (SVG); PNG diagram export via File → Export diagram (PNG) with white background and 2× resolution; diagram includes the system boundary, all nodes, flows, labels, and legend text.
 
-### Honest labeling of the diagnostics
+### Known M7 simplifications
 
-Two result statistics are simplified client-side proxies and are labelled as such in the UI. Gross-error detection follows the documented 95% confidence-interval criterion. True statistical tests run inside OpenSEFA.jl.
+PNG export uses SVG-to-canvas conversion which may not work in all browsers; the SVG export is the reliable fallback. The Sankey width slider affects only the current layer's values. STAN's full Sankey with flow splitting/merging at node boundaries and inflection-point routing is not implemented. Print preview is deferred.
 
-### Known M6 simplifications
+## Next: M8 — Options, files, and platform behavior
 
-Scaling divides displayed result values but does not rescale the underlying data (STAN's Scale Data modifies the data). The stability check via multiple solver runs with different random seeds requires server-side seed control not available through the OpenSEFA.jl HTTP API. Short variable keys in the equation dump are defined but not yet wired to the dialog checkbox.
-
-## Next: M7 — Presentation
-
-True Sankey rendering with flow widths proportional to values and curved routing; toggle between entered and calculated data in the diagram; legend object with units and scale basis; flow styles with inflection points; diagram export (PNG/SVG); print layout.
+Options dialog with multiple tabs; file management (new/open/save/save-as, recent files); document information; system keywords; undo/copy warning suppression.
 
 ## Troubleshooting
 
