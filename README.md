@@ -1,6 +1,6 @@
 # OpenSEFA STAN-lite Editor
 
-A browser-based MFA/SFA modeling workspace connected to the OpenSEFA.jl reconciliation solver, built to mirror the STAN 2.8 workflow. See ROADMAP.md for full STAN parity status and milestone plan (M1–M8).
+A browser-based MFA/SFA modeling workspace connected to the OpenSEFA.jl reconciliation solver, built to mirror the STAN 2.8 workflow. See ROADMAP.md for the full STAN parity plan (M1–M8).
 
 ## Update your local copy
 
@@ -34,23 +34,27 @@ Open http://localhost:8000.
 
 ## Workspace (M1)
 
-- Menu bar: File, Edit, View, Extras with hover dropdowns
-- Toolbars: STANDARD (New/Open/Save/Undo/Redo/Find), DIAGRAM (Grid/Snap/Zoom), DATA INPUT (layer select, period, CSV, Check structure, Calculate), SANKEY (Show as Sankey, Entered/Calculated display)
-- Model Explorer: hierarchical tree of the system; processes expand to their in/out flows; clicking selects the object in diagram and Properties
-- Shapes window: Selection mode, Process, Stock, Internal flow (Connect), Delete
-- Properties window: tabbed (System/Worksheet when nothing is selected; General/Values for nodes and flows)
-- Trace Output: messages and warnings from validation and calculation; click a message to select the referenced object; Clear button
-- Canvas: zoom (Ctrl+F11/Ctrl+F12), grid, snap-to-grid on move, marquee selection, Ctrl+click multi-select, group move
-- Keyboard shortcuts: F5 Calculate, Ctrl+N/O/S/Z/Y, Ctrl+F find, Ctrl+C/V copy/paste objects, Del delete, Esc cancel modes
-- German/English UI language (View menu; defaults to system language)
+Menu bar, STAN-grouped toolbars, Model Explorer, Shapes window, tabbed Properties, Trace Output, zoom/grid/snap, multi-select, copy/paste, find, undo/redo, STAN keyboard shortcuts (F5, Ctrl+N/O/S/Z/Y/F), German/English UI.
 
-All prior modeling features are preserved: layers, transfer coefficients, concentration links, stocks, validation, CSV import, teaching examples, worksheet, solver connection.
+## Model building (M2)
+
+- **System boundary**: automatically drawn around all internal objects, labeled with system name and period, showing Σ imports, Σ exports, Σ stock change, and a legend with layer and unit. Refreshes automatically; boundary stocks sit outside it.
+- **Flow types**: import / export / internal, derived from boundary stocks (STAN semantics). Imports are blue with ⇒, exports green with ⇐, internal flows dark.
+- **True subsystems**: add a Subsystem shape, then double-click (or Explorer ↘ / Properties → Edit subsystem) to open its own drawing area. The breadcrumb shows the hierarchy; up to six levels. Internal models are fully balanced: their equations are exported with a Sub1. name prefix and solved together with the parent model.
+- **Flow routing**: straight or orthogonal (with inflection), selectable per flow in Properties → General.
+- **Movable flow labels**: drag any flow label to reposition it.
+- **Flows anchor on object borders** instead of centers.
+- **Short symbols and remarks** per process; caption type (name / short / both) via View menu.
+- **Text fields**: arbitrary text objects on the diagram, draggable, editable in Properties.
+
+All M1 features and all modeling features (layers, transfer coefficients, concentration links, stocks, validation, CSV import, teaching examples, worksheet, solver) are preserved. Projects from older versions are migrated automatically.
 
 ## Troubleshooting
 
 - **CORS error:** serve the editor with `python3 -m http.server 8000`; never use `file://`.
-- **`julia: command not found` or StructUtils error:** install Julia 1.10 via Juliaup (`brew install juliaup; juliaup add 1.10; juliaup default 1.10`), then rebuild with `Pkg.instantiate()` and `Pkg.precompile()`.
-- **Reset everything:** Extras → Reset settings clears the browser storage and reloads.
+- **`julia: command not found` or StructUtils error:** install Julia 1.10 via Juliaup, then rebuild with `Pkg.instantiate()` and `Pkg.precompile()`.
+- **Old project:** open it via File → Open; the legacy format is migrated automatically.
+- **Reset everything:** Extras → Reset settings clears browser storage and reloads.
 
 ## License
 
