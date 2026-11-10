@@ -25,8 +25,17 @@ function renderProps(){
  const L=state.activeLayer;const layer=state.layers.find(l=>l.id===L);
  if(!sel0){
   if(state.propTab==='system'){
-   body.innerHTML='<label>'+t('model')+'<input id="pModel" value="'+esc(state.modelName)+'"></label><label>'+t('period')+'<input id="pPeriod" value="'+esc(state.periods.start)+'" type="number"></label><button id="pSolve">'+t('solve')+' (F5)</button><p>Period record: '+periodList()[0]+'\u2013'+periodList()[periodList().length-1]+' ('+state.periods.count+' \u00d7 1 year). Edit via Edit \u2192 Layers and periods\u2026</p><div id="resultTable"></div><pre id="output"></pre>';
+   body.innerHTML='<label>'+t('model')+'<input id="pModel" value="'+esc(state.modelName)+'"></label><label>'+t('period')+'<input id="pPeriod" value="'+esc(state.periods.start)+'" type="number"></label>'+
+   '<h5>Scaling basis</h5>'+
+   '<label>Scaling unit<input id="pScaleUnit" value="'+esc(state.scaling.unit||'capita')+'"></label>'+
+   '<label>Scaling factor<input id="pScaleFactor" type="number" value="'+(state.scaling.factor||100000)+'"></label>'+
+   '<label>Scale data by<select id="pScaleMode"><option value="none"'+(state.scaling.mode==='none'?' selected':'')+'>No scaling</option><option value="basis"'+(state.scaling.mode==='basis'?' selected':'')+'>Scaling factor</option><option value="imports"'+(state.scaling.mode==='imports'?' selected':'')+'>\u03a3 imports</option><option value="exports"'+(state.scaling.mode==='exports'?' selected':'')+'>\u03a3 exports</option></select></label>'+
+   '<p>When scaling is active, values in the result table are divided by the selected reference.</p>'+
+   '<button id="pSolve">'+t('solve')+' (F5)</button><p>Period record: '+periodList()[0]+'\u2013'+periodList()[periodList().length-1]+' ('+state.periods.count+' \u00d7 1 year). Edit via Edit \u2192 Layers and periods\u2026</p><div id="resultTable"></div><pre id="output"></pre>';
    document.getElementById('pModel').oninput=e=>{state.modelName=e.target.value;save();renderExplorer();render();};
+   document.getElementById('pScaleUnit').oninput=e=>{state.scaling.unit=e.target.value;save();};
+   document.getElementById('pScaleFactor').oninput=e=>{state.scaling.factor=+e.target.value;save();};
+   document.getElementById('pScaleMode').onchange=e=>{state.scaling.mode=e.target.value;save();if(state.lastResult)fillResult(state.lastResult);};
    document.getElementById('pSolve').onclick=doSolve;
    if(state.lastResult)fillResult(state.lastResult);
   }else{
