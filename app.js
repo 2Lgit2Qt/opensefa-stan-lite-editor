@@ -16,7 +16,7 @@ function saveUI(){localStorage.setItem(UI_KEY,JSON.stringify(ui));}
 let state={doc:{nodes:[],flows:[],texts:[],nextId:1},layers:[{id:'L1',code:'G',name:'Goods',kind:'goods',unit:'t/a',calc:true,dispUnit:'t'}],materials:[],units:{mass:{t:1000,kg:1,g:0.001,lb:0.45359237},volume:{m3:1,l:0.001,hl:0.1},energy:{MJ:1,GJ:1000,kWh:3.6,MWh:3600},time:{a:1,d:1/365,h:1/8760}},customUnits:{},periods:{start:2026,count:1},activePeriod:null,subgoods:false,editPath:[],sel:[],mode:'select',connectFrom:null,modelName:'SEFMN model',activeLayer:'L1',weighted:false,lastResult:null,periodLabel:'Year 2026',worksheet:{question:'',spatial:'',period:'',quantities:'',sources:'',interpretation:''},expanded:{},trace:[],clipboard:null,undoStack:[],redoStack:[],propTab:'general'};
 function periodList(){const r=[];for(let i=0;i<state.periods.count;i++)r.push(String(state.periods.start+i));return r;}
 function el(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
-function esc(s){return String(s).replace(/&/g,'&').replace(/</g,'<');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 function D(){let d=state.doc;for(const id of state.editPath){const n=d.nodes.find(x=>x.id===id);if(!n)return state.doc;if(!n.sub)n.sub={nodes:[],flows:[],texts:[],nextId:1};d=n.sub;}return d;}
 function save(){localStorage.setItem(LS_KEY,JSON.stringify({doc:state.doc,layers:state.layers,materials:state.materials,units:state.units,customUnits:state.customUnits,periods:state.periods,subgoods:state.subgoods,modelName:state.modelName,periodLabel:state.periodLabel,worksheet:state.worksheet}));}
 function ensureFlow(f){
@@ -64,7 +64,6 @@ function getNode(id){return D().nodes.find(n=>n.id===id);}
 function curP(){return state.activePeriod;}
 function vname(f,l,p){return f.name+'__'+l+'__'+(p||curP());}
 function tname(f,l){return f.name+'_tc__'+l;}
-function fl(f){return f.pd[curP()][state.activeLayer];}
 function unitFamily(u){for(const fam of Object.keys(state.units))if(state.units[fam][u]!==undefined)return fam;return null;}
 function toDisplay(v,u,layer){if(ui.unitMode!=='display'||!layer||!layer.dispUnit)return {v:v,u:u};const f1=unitFamily(u),f2=unitFamily(layer.dispUnit);if(!f1||f1!==f2)return {v:v,u:u};const k=state.units[f1][u]/state.units[f1][layer.dispUnit];return {v:v*k,u:layer.dispUnit};}
 function flowValue(f,l,p){const n=vname(f,l,p);if(state.lastResult&&state.lastResult.variables_value&&state.lastResult.variables_value[n]!==undefined)return Math.abs(+state.lastResult.variables_value[n]||0);const d=f.pd[p||curP()][l];return Math.abs(+d.value||0);}
@@ -156,7 +155,6 @@ function render(){
   world.appendChild(bs);
   const layer=state.layers.find(l=>l.id===state.activeLayer);
   const lg=el('text',{x:bx0+6,y:by1-22,'font-size':'11',fill:'#777'});
-  const disp=toDisplay(1,layer?layer.unit:'',layer);
   lg.textContent='Layer: '+esc(layer?layer.name:'')+' ('+esc(layer?layer.unit:'')+') — '+(ui.displayMode==='calculated'?'calculated':'entered')+' values'+(ui.unitMode==='display'&&layer?' — display unit '+esc(layer.dispUnit||''):'');
   world.appendChild(lg);
  }
@@ -252,7 +250,7 @@ function renderExplorer(){
 function renderStatic(){
  document.querySelectorAll('[data-i18n]').forEach(e=>{e.textContent=t(e.dataset.i18n);});
  const ls=document.getElementById('layerSelect');ls.innerHTML=state.layers.map(l=>'<option value="'+l.id+'"'+(l.id===state.activeLayer?' selected':'')+'>'+esc(l.name)+(l.calc===false?' (no calc)':'')+'</option>').join('');
- const ps=document.getElementById('periodSelect');ps.innerHTML=periodList().map(p=>'<option value="'+p+'"'+(p===state.activePeriod?' selected':'')+'>'+p+'</option>').join('');
+ const ps=document.getElementById('periodSelect');if(ps)ps.innerHTML=periodList().map(p=>'<option value="'+p+'"'+(p===state.activePeriod?' selected':'')+'>'+p+'</option>').join('');
  document.getElementById('tbSankey').textContent=t('sankey')+(state.weighted?': on':': off');
  document.getElementById('tbDisplay').textContent=t(ui.displayMode==='entered'?'entered':'calculated');
  document.getElementById('tbUnitsMode').textContent='Units: '+(ui.unitMode==='entered'?'entered':'display');
@@ -349,10 +347,12 @@ function exportDoc(prefix,doc){
  const variables=[];const equations=[];
  const pl=periodList();
  const layers=state.layers.filter(l=>l.calc!==false);
+ const vn=(f,l,p)=>prefix+f.name+'__'+l+'__'+p;
+ const tn=(f,l)=>prefix+f.name+'_tc__'+l;
  doc.flows.forEach(f=>pl.forEach(p=>layers.forEach(l=>{
-  variables.push(varObj(f.pd[p][l.id],vname(f,l.id,p)));
- }))).valueOf;
- doc.flows.forEach(f=>layers.forEach(l=>{if(f.tc[l.id].enabled){variables.push(varObj(f.tc[l.id],tname(f,l.id),true));}}));
+  variables.push(varObj(f.pd[p][l.id],vn(f,l.id,p)));
+ })));
+ doc.flows.forEach(f=>layers.forEach(l=>{if(f.tc[l.id]&&f.tc[l.id].enabled)variables.push(varObj(f.tc[l.id],tn(f,l.id),true));}));
  doc.nodes.filter(n=>n.type==='stock'&&!n.boundary).forEach(n=>pl.forEach(p=>layers.forEach(l=>{
   variables.push(varObj(n.pd[p][l.id].start,prefix+n.name+'_start__'+l.id+'__'+p));
   variables.push(varObj(n.pd[p][l.id].end,prefix+n.name+'_end__'+l.id+'__'+p));
@@ -361,14 +361,14 @@ function exportDoc(prefix,doc){
   const ins=doc.flows.filter(f=>f.to===n.id),outs=doc.flows.filter(f=>f.from===n.id);
   pl.forEach(p=>layers.forEach(l=>{
    if(n.type==='process'||n.type==='subsystem'){
-    const lt=[];ins.forEach(f=>lt.push({name:vname(f,l.id,p),factor:1}));outs.forEach(f=>lt.push({name:vname(f,l.id,p),factor:-1}));
+    const lt=[];ins.forEach(f=>lt.push({name:vn(f,l.id,p),factor:1}));outs.forEach(f=>lt.push({name:vn(f,l.id,p),factor:-1}));
     equations.push({constant_term:{value:0},linear_terms:lt,bilinear_terms:[]});
-    outs.filter(f=>f.tc[l.id].enabled).forEach(f=>{
-     equations.push({constant_term:{value:0},linear_terms:[{name:vname(f,l.id,p),factor:1}],bilinear_terms:ins.map(i=>({name1:tname(f,l.id),name2:vname(i,l.id,p),factor:-1}))});
+    outs.filter(f=>f.tc[l.id]&&f.tc[l.id].enabled).forEach(f=>{
+     equations.push({constant_term:{value:0},linear_terms:[{name:vn(f,l.id,p),factor:1}],bilinear_terms:ins.map(i=>({name1:tn(f,l.id),name2:vn(i,l.id,p),factor:-1}))});
     });
    }
    if(n.type==='stock'&&!n.boundary){
-    const lt=[];ins.forEach(f=>lt.push({name:vname(f,l.id,p),factor:1}));outs.forEach(f=>lt.push({name:vname(f,l.id,p),factor:-1}));
+    const lt=[];ins.forEach(f=>lt.push({name:vn(f,l.id,p),factor:1}));outs.forEach(f=>lt.push({name:vn(f,l.id,p),factor:-1}));
     lt.push({name:prefix+n.name+'_end__'+l.id+'__'+p,factor:-1});lt.push({name:prefix+n.name+'_start__'+l.id+'__'+p,factor:1});
     equations.push({constant_term:{value:0},linear_terms:lt,bilinear_terms:[]});
    }
@@ -386,19 +386,17 @@ function exportDoc(prefix,doc){
  });
  if(state.subgoods){
   const subgoods=layers.filter(l=>l.kind==='subgood');
-  if(subgoods.length){const goods=layers.find(l=>l.kind==='goods');
-   if(goods)doc.flows.forEach(f=>pl.forEach(p=>{
-    const lt=[{name:vname(f,goods.id,p),factor:-1}];subgoods.forEach(s=>lt.push({name:vname(f,s.id,p),factor:1}));
-    equations.push({constant_term:{value:0},linear_terms:lt,bilinear_terms:[]});
-   }));
-  }
+  const goods=layers.find(l=>l.kind==='goods');
+  if(subgoods.length&&goods)doc.flows.forEach(f=>pl.forEach(p=>{
+   const lt=[{name:vn(f,goods.id,p),factor:-1}];subgoods.forEach(s=>lt.push({name:vn(f,s.id,p),factor:1}));
+   equations.push({constant_term:{value:0},linear_terms:lt,bilinear_terms:[]});
+  }));
  }
  const primary=state.layers[0],secondary=state.layers[1];
- if(primary&&secondary){doc.flows.forEach(f=>{if(f.conc&&f.conc.enabled){variables.push(varObj(f.conc,prefix+f.name+'_conc'));pl.forEach(p=>equations.push({constant_term:{value:0},linear_terms:[{name:vname(f,secondary.id,p),factor:1}],bilinear_terms:[{name1:prefix+f.name+'_conc',name2:vname(f,primary.id,p),factor:-1}]});}});}
+ if(primary&&secondary){doc.flows.forEach(f=>{if(f.conc&&f.conc.enabled){variables.push(varObj(f.conc,prefix+f.name+'_conc'));pl.forEach(p=>equations.push({constant_term:{value:0},linear_terms:[{name:vn(f,secondary.id,p),factor:1}],bilinear_terms:[{name1:prefix+f.name+'_conc',name2:vn(f,primary.id,p),factor:-1}]}));}});}
  return {variables,equations};
 }
-function exportModel(){const r=exportDoc('',state.doc);return {content:{name:state.modelName,periods:pl2info(),variables:r.variables,equations:r.equations,solver:'JuMP'}};}
-function pl2info(){return {start:state.periods.start,count:state.periods.count,list:periodList()};}
+function exportModel(){const r=exportDoc('',state.doc);return {content:{name:state.modelName,periods:{start:state.periods.start,count:state.periods.count,list:periodList()},variables:r.variables,equations:r.equations,solver:'JuMP'}};}
 function validateModel(){
  const msgs=[];let eqCount=0;const unknowns=new Set();const d=D();const pl=periodList();const layers=state.layers.filter(l=>l.calc!==false);
  d.flows.forEach(f=>pl.forEach(p=>layers.forEach(l=>{
@@ -407,13 +405,13 @@ function validateModel(){
   if(!Number.isFinite(+dd.value))msgs.push({level:'error',msg:f.name+' ('+l.id+','+p+'): value is not a number.',ref:{kind:'flow',id:f.id}});
   if(dd.type==='measured'&&!(+dd.unc>0))msgs.push({level:'error',msg:f.name+' ('+l.id+','+p+'): measured variables need uncertainty > 0.',ref:{kind:'flow',id:f.id}});
  })));
- d.flows.forEach(f=>layers.forEach(l=>{if(f.tc[l.id].enabled)unknowns.add(tname(f,l.id));}));
+ d.flows.forEach(f=>layers.forEach(l=>{if(f.tc[l.id]&&f.tc[l.id].enabled)unknowns.add(tname(f,l.id));}));
  d.nodes.filter(n=>n.type==='stock'&&!n.boundary).forEach(n=>pl.forEach(p=>layers.forEach(l=>{unknowns.add(n.name+'_start__'+l.id+'__'+p);unknowns.add(n.name+'_end__'+l.id+'__'+p);}));
  d.nodes.forEach(n=>{
   const ins=d.flows.filter(f=>f.to===n.id),outs=d.flows.filter(f=>f.from===n.id);
   pl.forEach(p=>layers.forEach(l=>{
    if(n.type==='process'||n.type==='subsystem'){eqCount++;
-    outs.filter(f=>f.tc[l.id].enabled).forEach(f=>{eqCount++;
+    outs.filter(f=>f.tc[l.id]&&f.tc[l.id].enabled).forEach(f=>{eqCount++;
      if(!ins.length)msgs.push({level:'error',msg:f.name+': transfer coefficient needs at least one input flow.',ref:{kind:'flow',id:f.id}});
      if(ins.length===1&&outs.length===1)msgs.push({level:'warning',msg:f.name+': TC with one input and one output over-constrains the balance; add a loss/split outlet.',ref:{kind:'flow',id:f.id}});
     });
@@ -488,7 +486,9 @@ function exportWorksheet(){
 function doSolve(){
  const out=document.getElementById('output');if(out)out.textContent='Solving…';
  runValidation();
- fetch('http://localhost:8080/solve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(exportModel())}).then(r=>r.json()).then(showResult).catch(e=>{traceMsg('error','Solver error: '+e.message+' — is the Julia server running on port 8080?');if(out)out.textContent='Error: '+e.message;});
+ let payload;
+ try{payload=JSON.stringify(exportModel());}catch(err){traceMsg('error','Export failed: '+err.message);if(out)out.textContent='Export failed: '+err.message;return;}
+ fetch('http://localhost:8080/solve',{method:'POST',headers:{'Content-Type':'application/json'},body:payload}).then(r=>r.json()).then(showResult).catch(e=>{traceMsg('error','Solver error: '+e.message+' — is the Julia server running on port 8080?');if(out)out.textContent='Error: '+e.message;});
 }
 function openFind(){
  const fb=document.getElementById('findBox');fb.hidden=false;document.getElementById('findInput').value='';document.getElementById('findResults').innerHTML='';document.getElementById('findInput').focus();
@@ -511,7 +511,7 @@ function materialsDialog(){
  openModal('Define material','<table><tr><th>Code</th><th>Name</th><th>Kind</th><th></th></tr>'+rows+'</table>'+
   '<label>Code<input id="matCode"></label><label>Name<input id="matName"></label><label>Kind<select id="matKind"><option>substance</option><option>subgood</option><option>energy</option></select></label>'+
   '<div class="rowbtns"><button id="matAdd">Add material</button><button id="mClose">Close</button></div>');
- document.getElementById('matAdd').onclick=()=>{const code=document.getElementById('matCode').value.trim(),name=document.getElementById('matName').value.trim(),kind=document.getElementById('matKind').value;if(!code||!name){alert('Code and name required.');return;}if(MAT.concat(state.materials).some(m=>m.code===code)){alert('Code already exists.');return;}if(/^\d/.test(code)){alert('Unit/material codes must not start with a number.');return;}state.materials.push({code,name,kind});save();materialsDialog();};
+ document.getElementById('matAdd').onclick=()=>{const code=document.getElementById('matCode').value.trim(),name=document.getElementById('matName').value.trim(),kind=document.getElementById('matKind').value;if(!code||!name){alert('Code and name required.');return;}if(MAT.concat(state.materials).some(m=>m.code===code)){alert('Code already exists.');return;}if(/^\d/.test(code)){alert('Codes must not start with a number.');return;}state.materials.push({code,name,kind});save();materialsDialog();};
  document.getElementById('mClose').onclick=closeModal;
  document.querySelectorAll('#modalBody [data-del]').forEach(b=>b.onclick=()=>{state.materials=state.materials.filter(m=>m.code!==b.dataset.del);save();materialsDialog();});
 }
@@ -529,7 +529,7 @@ function layersDialog(){
   const oldList=periodList();
   state.periods={start:ns,count:nc};
   const newList=periodList();
-  const walk=doc=>{doc.flows.forEach(f=>{const np={};newList.forEach((p,i)=>{np[p]=oldList[i]?f.pd[oldList[i]]:undefined;});const clean={};newList.forEach(p=>{if(np[p])clean[p]=np[p];});f.pd=clean;});doc.nodes.forEach(n=>{if(n.type==='stock'){const np={};newList.forEach((p,i)=>{np[p]=oldList[i]?n.pd[oldList[i]]:undefined;});const clean={};newList.forEach(p=>{if(np[p])clean[p]=np[p];});n.pd=clean;}if(n.sub)walk(n.sub);});};
+  const walk=doc=>{doc.flows.forEach(f=>{const np={};newList.forEach((p,i)=>{if(oldList[i]&&f.pd[oldList[i]])np[p]=f.pd[oldList[i]];});f.pd=np;});doc.nodes.forEach(n=>{if(n.type==='stock'){const np={};newList.forEach((p,i)=>{if(oldList[i]&&n.pd[oldList[i]])np[p]=n.pd[oldList[i]];});n.pd=np;}if(n.sub)walk(n.sub);});};
   walk(state.doc);migrateDoc(state.doc);state.activePeriod=newList[0];save();traceMsg('info','Period record updated: '+newList[0]+'–'+newList[newList.length-1]+'. Data kept by position.');layersDialog();renderAll();
  };
  document.querySelectorAll('#modalBody [data-ln]').forEach(i=>i.oninput=()=>{const l=state.layers.find(x=>x.id===i.dataset.ln);l.name=i.value;save();});
@@ -589,7 +589,7 @@ function wireUI(){
  on('tbDisplay',()=>{ui.displayMode=ui.displayMode==='entered'?'calculated':'entered';saveUI();renderStatic();render();});
  on('traceClear',()=>{state.trace=[];renderTrace();});
  document.getElementById('layerSelect').onchange=e=>{state.activeLayer=e.target.value;renderProps();render();};
- document.getElementById('periodSelect').onchange=e=>{state.activePeriod=e.target.value;renderProps();render();};
+ const pse=document.getElementById('periodSelect');if(pse)pse.onchange=e=>{state.activePeriod=e.target.value;renderProps();render();};
  document.getElementById('importCsv').onchange=e=>{const r=new FileReader();r.onload=()=>importCSV(r.result);r.readAsText(e.target.files[0]);};
  document.getElementById('openProject').onchange=e=>{const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);if(s.doc){Object.assign(state,{doc:s.doc,layers:s.layers||state.layers,materials:s.materials||[],units:s.units||state.units,customUnits:s.customUnits||{},periods:s.periods||state.periods,subgoods:!!s.subgoods,modelName:s.modelName||'SEFMN model',periodLabel:s.periodLabel||'Year 2026',worksheet:s.worksheet||state.worksheet});}else{Object.assign(state,{doc:{nodes:s.nodes||[],flows:s.flows||[],texts:[],nextId:s.nextId||1},layers:s.layers||state.layers,modelName:s.modelName||'SEFMN model',periodLabel:s.periodLabel||'Year 2026',worksheet:s.worksheet||state.worksheet});}state.editPath=[];state.sel=[];state.trace=[];state.lastResult=null;migrate();save();renderAll();}catch(err){alert('Invalid project file: '+err.message);}};r.readAsText(e.target.files[0]);};
  svg.addEventListener('mousedown',e=>{
@@ -638,11 +638,8 @@ function loadConflict(){
  state.periods={start:2026,count:1};state.activePeriod='2026';
  state.layers=[{id:'L1',code:'G',name:'Goods',kind:'goods',unit:'t/a',calc:true,dispUnit:'t'},{id:'L2',code:'P',name:'Phosphorus',kind:'substance',unit:'kg/a',calc:true,dispUnit:'kg'}];
  state.doc={nodes:[{id:'n1',type:'stock',name:'S1',short:'',remarks:'',x:80,y:150,boundary:true,pd:{2026:{L1:{start:{type:'fixed',value:0,unc:0},end:{type:'fixed',value:0,unc:0}},L2:{start:{type:'fixed',value:0,unc:0},end:{type:'fixed',value:0,unc:0}}}}},{id:'n2',type:'process',name:'P1',short:'',remarks:'',x:260,y:150},{id:'n3',type:'process',name:'P2',short:'',remarks:'',x:440,y:150},{id:'n4',type:'stock',name:'S2',short:'',remarks:'',x:620,y:150,boundary:true,pd:{2026:{L1:{start:{type:'fixed',value:0,unc:0},end:{type:'fixed',value:0,unc:0}},L2:{start:{type:'fixed',value:0,unc:0},end:{type:'fixed',value:0,unc:0}}}}}],flows:[],texts:[],nextId:1};
- const p1={2026:{L1:{type:'measured',value:100,unc:10,unit:'t/a'},L2:{type:'measured',value:1000,unc:100,unit:'kg/a'}}};
- const p2={2026:{L1:{type:'unmeasured',value:0,unc:0.1,unit:'t/a'},L2:{type:'unmeasured',value:0,unc:1,unit:'kg/a'}}};
- const p3={2026:{L1:{type:'measured',value:160,unc:16,unit:'t/a'},L2:{type:'unmeasured',value:0,unc:1,unit:'kg/a'}}};
- const p4={2026:{L1:{type:'unmeasured',value:0,unc:0.1,unit:'t/a'},L2:{type:'unmeasured',value:0,unc:1,unit:'kg/a'}}};
- state.doc.flows=[mkFlow('f1','F1','n1','n2','straight',JSON.parse(JSON.stringify(p1))),mkFlow('f2','F2','n2','n3','straight',JSON.parse(JSON.stringify(p2))),mkFlow('f3','F3','n3','n4','straight',JSON.parse(JSON.stringify(p3))),mkFlow('f4','F4','n2','n4','straight',JSON.parse(JSON.stringify(p4)))];
+ const mk=(name,from,to,l1,l2,id)=>mkFlow(id,name,from,to,'straight',{2026:{L1:l1,L2:l2}});
+ state.doc.flows=[mk('F1','n1','n2',{type:'measured',value:100,unc:10,unit:'t/a'},{type:'measured',value:1000,unc:100,unit:'kg/a'},'f1'),mk('F2','n2','n3',{type:'unmeasured',value:0,unc:0.1,unit:'t/a'},{type:'unmeasured',value:0,unc:1,unit:'kg/a'},'f2'),mk('F3','n3','n4',{type:'measured',value:160,unc:16,unit:'t/a'},{type:'unmeasured',value:0,unc:1,unit:'kg/a'},'f3'),mk('F4','n2','n4',{type:'unmeasured',value:0,unc:0.1,unit:'t/a'},{type:'unmeasured',value:0,unc:1,unit:'kg/a'},'f4')];
  state.doc.flows.forEach(f=>{state.layers.forEach(l=>{f.tc[l.id]={enabled:false,type:'measured',value:0.5,unc:0.05};});});
  state.doc.flows[1].tc.L1.enabled=true;state.doc.flows[2].conc.enabled=true;state.doc.flows[2].conc.value=10;state.doc.flows[2].conc.unc=1;
  Object.assign(state,{editPath:[],modelName:'Conflict example',activeLayer:'L1',weighted:false,lastResult:null,sel:[],trace:[],undoStack:[],redoStack:[],expanded:{}});
