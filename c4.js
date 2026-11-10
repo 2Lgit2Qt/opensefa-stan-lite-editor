@@ -48,8 +48,26 @@ function exportDoc(prefix,doc,plOverride){
    equations.push({constant_term:{value:0},linear_terms:lt,bilinear_terms:[]});
   }));
  }
- const primary=state.layers[0],secondary=state.layers[1];
- if(primary&&secondary){doc.flows.forEach(f=>{if(f.conc&&f.conc.enabled){variables.push(varObj(f.conc,prefix+f.name+'_conc'));pl.forEach(p=>equations.push({constant_term:{value:0},linear_terms:[{name:vn(f,secondary.id,p),factor:1}],bilinear_terms:[{name1:prefix+f.name+'_conc',name2:vn(f,primary.id,p),factor:-1}]}));}});}
+ if(goodsL){doc.flows.forEach(f=>pl.forEach(p=>{
+  const vv=f.pd[p]&&f.pd[p].vol;const dn=f.pd[p]&&f.pd[p].dens;
+  if(vv&&dn&&((vv.type&&vv.type!=='unmeasured')||(dn.type&&dn.type!=='unmeasured'))){
+   variables.push(varObj(vv,prefix+f.name+'_vol__'+p));
+   variables.push(varObj(dn,prefix+f.name+'_dens__'+p));
+   equations.push({constant_term:{value:0},linear_terms:[{name:vn(f,goodsL.id,p),factor:1}],bilinear_terms:[{name1:prefix+f.name+'_vol__'+p,name2:prefix+f.name+'_dens__'+p,factor:-1}]});
+  }
+ }));}
+ layers.forEach(sl=>{
+  if((sl.kind==='substance'||sl.kind==='energy')&&goodsL){
+   doc.flows.forEach(f=>pl.forEach(p=>{
+    const c=f.pd[p]&&f.pd[p].conc;
+    if(c&&c.enabled){
+     const cn=prefix+f.name+'_conc__'+sl.id+'__'+p;
+     variables.push(varObj(c,cn));
+     equations.push({constant_term:{value:0},linear_terms:[{name:vn(f,sl.id,p),factor:1}],bilinear_terms:[{name1:cn,name2:vn(f,goodsL.id,p),factor:-1}]});
+    }
+   }));
+  }
+ });
  return {variables,equations};
 }
 function exportModel(cps){const pl=(cps&&cps.length)?cps:periodList();const r=exportDoc('',state.doc,pl);return {content:{name:state.modelName,periods:{start:state.periods.start,count:state.periods.count,list:pl},variables:r.variables,equations:r.equations,solver:'JuMP'}};}
