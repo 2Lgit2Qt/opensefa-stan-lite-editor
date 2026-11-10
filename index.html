@@ -29,6 +29,10 @@
         <button id="miDelete" data-i18n="del">Delete</button>
         <hr>
         <button id="miCsv">Import CSV (flows)</button>
+        <hr>
+        <button id="miMaterials">Define material…</button>
+        <button id="miLayers">Layers and periods…</button>
+        <button id="miUnits">Define units…</button>
       </div>
     </div>
     <div class="menu"><button data-i18n="view">View</button>
@@ -44,6 +48,7 @@
     </div>
     <div class="menu"><button data-i18n="extras">Extras</button>
       <div class="dropdown">
+        <button id="miSubgoods">Use subgood layers: off</button>
         <button id="miReset">Reset settings</button>
       </div>
     </div>
@@ -66,9 +71,8 @@
     <div class="tbgroup">
       <label class="inlbl" data-i18n="layers">Layers</label>
       <select id="layerSelect"></select>
-      <button id="tbAddLayer">+</button>
       <label class="inlbl" data-i18n="period">Period</label>
-      <input id="periodLabel" value="Year 2026">
+      <select id="periodSelect"></select>
       <button id="tbCsv">CSV</button>
       <button id="tbValidate" data-i18n="validation">Check structure</button>
       <button id="tbSolve" data-i18n="solve">Calculate</button>
@@ -76,6 +80,7 @@
     <div class="tbgroup">
       <button id="tbSankey" data-i18n="sankey">Show as Sankey</button>
       <button id="tbDisplay" data-i18n="calculated">Calculated</button>
+      <button id="tbUnitsMode">Units: entered</button>
     </div>
   </div>
   <div id="crumb"></div>
@@ -119,6 +124,7 @@
   <input id="findInput" placeholder="Search term">
   <div id="findResults"></div>
 </div>
+<div id="modal" hidden><div id="modalBox"><h3 id="modalTitle"></h3><div id="modalBody"></div></div></div>
 <input type="file" id="openProject" accept=".json" hidden>
 <input type="file" id="importCsv" accept=".csv,.txt" hidden>
 <script src="app.js"></script>
