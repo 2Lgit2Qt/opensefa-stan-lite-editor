@@ -32,28 +32,27 @@ python3 -m http.server 8000
 
 Open http://localhost:8000.
 
-## Workspace (M1)
+## Layers, materials, periods, units (M3)
 
-Menu bar, STAN-grouped toolbars, Model Explorer, Shapes window, tabbed Properties, Trace Output, zoom/grid/snap, multi-select, copy/paste, find, undo/redo, STAN keyboard shortcuts (F5, Ctrl+N/O/S/Z/Y/F), German/English UI.
+- **Define material** (Edit menu): catalog of predefined substances (C, N, P, K, S, Cl, Ca, Fe, Cu, Zn, Pb, Al, Si, Cd, Hg, H2O, CO2, organic dry matter), subgoods, and energy; custom materials can be added and deleted.
+- **Layers and periods** (Edit menu): manage layers (code, name, kind goods/substance/subgood/energy, unit, calculation on/off, display unit) and the period record (start year, number of consecutive 1-year periods). Changing the period record keeps data by position (STAN “keep” behavior).
+- **Period selection** (DATA INPUT toolbar): all values — flow data and stock contents — are entered and displayed per period. Calculation covers the full period record; variables are named `F1__L1__2026` (flow, layer, period).
+- **Stock equation across periods**: for internal stocks, `start_(i+1) = end_i` links consecutive periods, matching STAN's `stock_i = stock_(i−1) + Δstock_(i−1)`.
+- **Subgood mode** (Extras menu): when enabled, subgood layers must sum to the goods layer per flow; the corresponding equations are exported.
+- **Define units** (Edit menu): unit families for mass, volume, energy, and time with predefined units; custom units can be inserted (name must not start with a number) and deleted. Per-layer display units.
+- **Units: entered / display** toggle (SANKEY toolbar): switches diagram value display between entered units and the layer's display unit.
 
-## Model building (M2)
+Known M3 simplifications (documented for the KI-Logbuch): transfer coefficients and concentration links are shared across periods rather than per-period; the display-unit toggle affects the diagram only — the calculation uses entered values; period duration is fixed at one year.
 
-- **System boundary**: automatically drawn around all internal objects, labeled with system name and period, showing Σ imports, Σ exports, Σ stock change, and a legend with layer and unit. Refreshes automatically; boundary stocks sit outside it.
-- **Flow types**: import / export / internal, derived from boundary stocks (STAN semantics). Imports are blue with ⇒, exports green with ⇐, internal flows dark.
-- **True subsystems**: add a Subsystem shape, then double-click (or Explorer ↘ / Properties → Edit subsystem) to open its own drawing area. The breadcrumb shows the hierarchy; up to six levels. Internal models are fully balanced: their equations are exported with a Sub1. name prefix and solved together with the parent model.
-- **Flow routing**: straight or orthogonal (with inflection), selectable per flow in Properties → General.
-- **Movable flow labels**: drag any flow label to reposition it.
-- **Flows anchor on object borders** instead of centers.
-- **Short symbols and remarks** per process; caption type (name / short / both) via View menu.
-- **Text fields**: arbitrary text objects on the diagram, draggable, editable in Properties.
+## Workspace (M1) and model building (M2)
 
-All M1 features and all modeling features (layers, transfer coefficients, concentration links, stocks, validation, CSV import, teaching examples, worksheet, solver) are preserved. Projects from older versions are migrated automatically.
+Menu bar, STAN toolbars, Model Explorer, Shapes, tabbed Properties, Trace Output, zoom/grid/snap, multi-select, copy/paste, find, undo/redo, STAN shortcuts, German/English UI; system boundary with Σ imports/exports/stock change; import/export/internal flow types; true subsystems up to six levels (internal equations exported with prefix); straight/orthogonal flow routing; movable flow labels; short symbols, remarks, captions; text fields.
 
 ## Troubleshooting
 
 - **CORS error:** serve the editor with `python3 -m http.server 8000`; never use `file://`.
 - **`julia: command not found` or StructUtils error:** install Julia 1.10 via Juliaup, then rebuild with `Pkg.instantiate()` and `Pkg.precompile()`.
-- **Old project:** open it via File → Open; the legacy format is migrated automatically.
+- **Old project:** open it via File → Open; the legacy data format is migrated automatically.
 - **Reset everything:** Extras → Reset settings clears browser storage and reloads.
 
 ## License
