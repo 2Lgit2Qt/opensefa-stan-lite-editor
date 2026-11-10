@@ -2,7 +2,7 @@ function wireUI(){
  const on=(id,fn)=>{const e=document.getElementById(id);if(e)e.onclick=fn;};
  on('miNew',doNew);on('tbNew',doNew);
  on('miOpen',()=>document.getElementById('openProject').click());on('tbOpen',()=>document.getElementById('openProject').click());
- on('miSave',()=>download((state.modelName||'model').replace(/\W+/g,'_')+'.json',JSON.stringify({doc:state.doc,layers:state.layers,materials:state.materials,refs:state.refs,units:state.units,customUnits:state.customUnits,periods:state.periods,subgoods:state.subgoods,modelName:state.modelName,periodLabel:state.periodLabel,worksheet:state.worksheet},null,2)));
+ on('miSave',()=>download((state.modelName||'model').replace(/\W+/g,'_')+'.json',JSON.stringify({scaling:state.scaling,doc:state.doc,layers:state.layers,materials:state.materials,refs:state.refs,units:state.units,customUnits:state.customUnits,periods:state.periods,subgoods:state.subgoods,modelName:state.modelName,periodLabel:state.periodLabel,worksheet:state.worksheet},null,2)));
  on('tbSave',()=>document.getElementById('miSave').click());
  on('miUndo',doUndo);on('tbUndo',doUndo);on('miRedo',doRedo);on('tbRedo',doRedo);
  on('miFind',openFind);on('tbFind',openFind);
@@ -14,6 +14,8 @@ function wireUI(){
  on('miRefs',refsDialog);
  on('miData',dexOpen);
  on('miCalc',calcDialog);
+ on('miExportSvg',exportSvg);
+ on('miExportPng',exportPng);
  on('miSubgoods',()=>{state.subgoods=!state.subgoods;save();renderStatic();traceMsg('info','Subgood mode '+(state.subgoods?'enabled: subgood layers must sum to the goods layer per flow.':'disabled.'));});
  on('miClean',loadClean);on('miConflict',loadConflict);
  on('miWorksheet',exportWorksheet);
@@ -37,10 +39,11 @@ function wireUI(){
  on('tbSankey',()=>{state.weighted=!state.weighted;renderStatic();render();});
  on('tbDisplay',()=>{ui.displayMode=ui.displayMode==='entered'?'calculated':'entered';saveUI();renderStatic();render();});
  on('traceClear',()=>{state.trace=[];renderTrace();});
+ const sw=document.getElementById('tbSankeyWidth');if(sw){sw.value=ui.sankeyMaxWidth||20;sw.oninput=e=>{ui.sankeyMaxWidth=+e.target.value;saveUI();render();};}
  document.getElementById('layerSelect').onchange=e=>{state.activeLayer=e.target.value;renderProps();render();};
  const pse=document.getElementById('periodSelect');if(pse)pse.onchange=e=>{state.activePeriod=e.target.value;renderProps();render();};
  document.getElementById('importCsv').onchange=e=>{const r=new FileReader();r.onload=()=>importCSV(r.result);r.readAsText(e.target.files[0]);};
- document.getElementById('openProject').onchange=e=>{const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);if(s.doc){Object.assign(state,{doc:s.doc,layers:s.layers||state.layers,materials:s.materials||[],refs:s.refs||[],units:s.units||state.units,customUnits:s.customUnits||{},periods:s.periods||state.periods,subgoods:!!s.subgoods,modelName:s.modelName||'SEFMN model',periodLabel:s.periodLabel||'Year 2026',worksheet:s.worksheet||state.worksheet});}else{Object.assign(state,{doc:{nodes:s.nodes||[],flows:s.flows||[],texts:[],nextId:s.nextId||1},layers:s.layers||state.layers,refs:s.refs||[],modelName:s.modelName||'SEFMN model',periodLabel:s.periodLabel||'Year 2026',worksheet:s.worksheet||state.worksheet});}state.editPath=[];state.sel=[];state.trace=[];state.lastResult=null;state.lastPayload=null;migrate();save();renderAll();}catch(err){alert('Invalid project file: '+err.message);}};r.readAsText(e.target.files[0]);};
+ document.getElementById('openProject').onchange=e=>{const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);if(s.doc){Object.assign(state,{scaling:s.scaling||state.scaling,doc:s.doc,layers:s.layers||state.layers,materials:s.materials||[],refs:s.refs||[],units:s.units||state.units,customUnits:s.customUnits||{},periods:s.periods||state.periods,subgoods:!!s.subgoods,modelName:s.modelName||'SEFMN model',periodLabel:s.periodLabel||'Year 2026',worksheet:s.worksheet||state.worksheet});}else{Object.assign(state,{doc:{nodes:s.nodes||[],flows:s.flows||[],texts:[],nextId:s.nextId||1},layers:s.layers||state.layers,refs:s.refs||[],modelName:s.modelName||'SEFMN model',periodLabel:s.periodLabel||'Year 2026',worksheet:s.worksheet||state.worksheet});}state.editPath=[];state.sel=[];state.trace=[];state.lastResult=null;state.lastPayload=null;migrate();save();renderAll();}catch(err){alert('Invalid project file: '+err.message);}};r.readAsText(e.target.files[0]);};
  svg.addEventListener('mousedown',e=>{
   if(e.target!==svg&&e.target.tagName!=='rect')return;
   const start=toWorld(e);let marquee=null;
