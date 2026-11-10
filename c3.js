@@ -1,4 +1,17 @@
-function dataEditor(v,p){return '<label>'+t('type')+'<select id="'+p+'_type"><option'+(v.type==='measured'?' selected':'')+'>'+t('measured')+'</option><option'+(v.type==='unmeasured'?' selected':'')+'>'+t('unmeasured')+'</option><option'+(v.type==='fixed'?' selected':'')+'>'+t('fixed')+'</option></select></label><label>'+t('value')+'<input id="'+p+'_value" type="number" value="'+v.value+'"></label><label>'+t('uncertainty')+'<input id="'+p+'_unc" type="number" step="0.01" value="'+v.unc+'"></label>';}
+function dataEditor(v,p){return '<label>'+t('type')+'<select id="'+p+'_type"><option'+(v.type==='measured'?' selected':'')+'>'+t('measured')+'</option><option'+(v.type==='unmeasured'?' selected':'')+'>'+t('unmeasured')+'</option><option'+(v.type==='fixed'?' selected':'')+'>'+t('fixed')+'</option></select></label><label>'+t('value')+'<input id="'+p+'_value" type="number" value="'+v.value+'"></label><label>'+t('uncertainty')+'<input id="'+p+'_unc" type="number" step="0.01" value="'+v.unc+'"></label><label>'+t('uncertainty')+' %<input id="'+p+'_pct" type="number" step="0.1" value="'+(v.value?(v.unc/Math.abs(v.value)*100).toFixed(2):'0')+'"></label>';}
+function bindDataEditor(v,p,after){
+ document.getElementById(p+'_type').onchange=e=>{v.type=e.target.value;save();if(after)after();};
+ document.getElementById(p+'_value').oninput=e=>{v.value=+e.target.value;save();document.getElementById(p+'_pct').value=v.value?(v.unc/Math.abs(v.value)*100).toFixed(2):'0';if(after)after();};
+ document.getElementById(p+'_unc').oninput=e=>{v.unc=+e.target.value;save();document.getElementById(p+'_pct').value=v.value?(v.unc/Math.abs(v.value)*100).toFixed(2):'0';if(after)after();};
+ document.getElementById(p+'_pct').oninput=e=>{const pct=+e.target.value;v.unc=Math.abs(v.value||0)*pct/100;save();document.getElementById(p+'_unc').value=(+v.unc.toFixed(4));if(after)after();};
+}
+function refOptions(cur){return state.refs.map(r=>'<option'+(r===cur?' selected':'')+'>'+esc(r)+'</option>').join('');}
+function refEditor(d,p){return '<label>Literature reference<select id="'+p+'_ref"><option value="">\u2014</option>'+refOptions(d.ref)+'</select> <button id="'+p+'_refNew" type="button">+</button></label><label>'+t('remarks')+'<textarea id="'+p+'_rem">'+esc(d.rem||'')+'</textarea></label>';}
+function bindRefEditor(d,p){
+ document.getElementById(p+'_ref').onchange=e=>{d.ref=e.target.value;save();};
+ document.getElementById(p+'_refNew').onclick=()=>{const r=prompt('New literature reference:');if(r&&r.trim()){state.refs.push(r.trim());d.ref=r.trim();save();renderProps();}};
+ document.getElementById(p+'_rem').oninput=e=>{d.rem=e.target.value;save();};
+}
 function unitOptions(sel){return Object.keys(state.units.mass).concat(Object.keys(state.units.volume),Object.keys(state.units.energy),Object.keys(state.units.time)).map(u=>'<option'+(u===sel?' selected':'')+'>'+u+'</option>').join('');}
 function renderProps(){
  const tabs=document.getElementById('propTabs');const body=document.getElementById('props');
@@ -48,11 +61,11 @@ function renderProps(){
   }else{
    const pd=n.pd?n.pd[curP()][L]:null;
    let h='<h4>'+esc(n.name)+' \u2014 '+esc(layer.name)+' \u2014 '+curP()+'</h4>';
-   if(n.type==='stock'){h+='<h5>'+t('start')+'</h5>'+dataEditor(pd.start,'st')+'<h5>'+t('end')+'</h5>'+dataEditor(pd.end,'en');}
+   if(n.type==='stock'&&pd){h+='<h5>'+t('start')+'</h5>'+dataEditor(pd.start,'st')+refEditor(pd.start,'st')+'<h5>'+t('end')+'</h5>'+dataEditor(pd.end,'en')+refEditor(pd.end,'en');}
    if(n.type==='process'){const outs=D().flows.filter(f=>f.from===n.id);h+='<h5>'+t('tc')+' (shared across periods)</h5>';if(!outs.length)h+='<p>\u2014</p>';outs.forEach(f=>{const tc=f.tc[L];h+='<h6>'+esc(f.name)+'</h6><label><input type="checkbox" id="tc_'+f.id+'" '+(tc.enabled?'checked':'')+'> TC</label><div id="tcbox_'+f.id+'" style="display:'+(tc.enabled?'block':'none')+'">'+dataEditor(tc,'tc'+f.id)+'</div>';});}
    body.innerHTML=h;
-   if(n.type==='stock')['st','en'].forEach((k,i)=>{const key=i?'end':'start';document.getElementById(k+'_type').onchange=e=>{pd[key].type=e.target.value;save();};document.getElementById(k+'_value').oninput=e=>{pd[key].value=+e.target.value;save();render();};document.getElementById(k+'_unc').oninput=e=>{pd[key].unc=+e.target.value;save();};});
-   if(n.type==='process')D().flows.filter(f=>f.from===n.id).forEach(f=>{const tc=f.tc[L];document.getElementById('tc_'+f.id).onchange=e=>{tc.enabled=e.target.checked;save();renderProps();render();};document.getElementById('tc'+f.id+'_type').onchange=e=>{tc.type=e.target.value;save();};document.getElementById('tc'+f.id+'_value').oninput=e=>{tc.value=+e.target.value;save();};document.getElementById('tc'+f.id+'_unc').oninput=e=>{tc.unc=+e.target.value;save();};});
+   if(n.type==='stock'&&pd){['st','en'].forEach((k,i)=>{const key=i?'end':'start';bindDataEditor(pd[key],k,render);bindRefEditor(pd[key],k);});}
+   if(n.type==='process')D().flows.filter(f=>f.from===n.id).forEach(f=>{const tc=f.tc[L];document.getElementById('tc_'+f.id).onchange=e=>{tc.enabled=e.target.checked;save();renderProps();render();};if(document.getElementById('tc'+f.id+'_type'))bindDataEditor(tc,'tc'+f.id);});
   }
  }else{
   const f=D().flows.find(x=>x.id===sel0.id);if(!f)return;
@@ -63,16 +76,25 @@ function renderProps(){
    document.getElementById('fName').oninput=e=>{f.name=e.target.value;save();render();renderExplorer();};
    document.getElementById('fRouting').onchange=e=>{f.routing=e.target.value;save();render();};
   }else{
-   const primary=state.layers[0],secondary=state.layers[1];
-   let h=dataEditor(dd,'d')+'<label>'+t('unit')+'<input id="d_unit" value="'+esc(dd.unit||'')+'"></label><label>Convert: <select id="convFrom">'+unitOptions(dd.unit)+'</select> \u2192 <select id="convTo">'+unitOptions(dd.unit)+'</select></label><button id="convertBtn">Convert value + uncertainty</button>';
-   if(primary&&secondary){const c=f.conc;h+='<h5>'+t('conc')+' (shared across periods)</h5><p>'+esc(primary.name)+' \u2192 '+esc(secondary.name)+': secondary = c \u00d7 primary</p><label><input type="checkbox" id="c_en" '+(c.enabled?'checked':'')+'> Enable</label><div id="cbox" style="display:'+(c.enabled?'block':'none')+'">'+dataEditor(c,'c')+'</div>';}
+   let h=dataEditor(dd,'d')+refEditor(dd,'d')+'<label>'+t('unit')+'<input id="d_unit" value="'+esc(dd.unit||'')+'"></label><label>Convert: <select id="convFrom">'+unitOptions(dd.unit)+'</select> \u2192 <select id="convTo">'+unitOptions(dd.unit)+'</select></label><button id="convertBtn">Convert value + uncertainty</button>';
+   if(layer.kind==='goods'){
+    const vv=f.pd[curP()].vol;const dn=f.pd[curP()].dens;
+    h+='<h5>Volume flow (goods)</h5>'+dataEditor(vv,'vol');
+    h+='<h5>Density (goods)</h5>'+dataEditor(dn,'dens');
+    h+='<p>Exported equation: mass flow = volume flow \u00d7 density.</p>';
+   }else if(layer.kind==='substance'||layer.kind==='energy'){
+    const c=f.pd[curP()].conc;
+    h+='<h5>'+t('conc')+' \u2014 '+esc(layer.name)+', '+curP()+'</h5>';
+    h+='<label><input type="checkbox" id="c_en" '+(c.enabled?'checked':'')+'> Use concentration for this period</label><div id="cbox" style="display:'+(c.enabled?'block':'none')+'">'+dataEditor(c,'c')+'</div>';
+    h+='<p>Exported equation: '+esc(layer.name)+' flow = concentration \u00d7 goods flow.</p>';
+   }
    body.innerHTML=h;
-   document.getElementById('d_type').onchange=e=>{dd.type=e.target.value;save();};
-   document.getElementById('d_value').oninput=e=>{dd.value=+e.target.value;save();render();};
-   document.getElementById('d_unc').oninput=e=>{dd.unc=+e.target.value;save();};
+   bindDataEditor(dd,'d',render);
+   bindRefEditor(dd,'d');
    document.getElementById('d_unit').oninput=e=>{dd.unit=e.target.value;save();};
    document.getElementById('convertBtn').onclick=()=>{const from=document.getElementById('convFrom').value,to=document.getElementById('convTo').value;const fam=Object.keys(state.units).find(k=>state.units[k][from]!==undefined&&state.units[k][to]!==undefined);if(!fam){alert('Incompatible units.');return;}const k=state.units[fam][from]/state.units[fam][to];dd.value=dd.value*k;dd.unc=dd.unc*k;dd.unit=to;save();renderProps();render();};
-   if(primary&&secondary){document.getElementById('c_en').onchange=e=>{f.conc.enabled=e.target.checked;save();renderProps();};document.getElementById('c_type').onchange=e=>{f.conc.type=e.target.value;save();};document.getElementById('c_value').oninput=e=>{f.conc.value=+e.target.value;save();};document.getElementById('c_unc').oninput=e=>{f.conc.unc=+e.target.value;save();};}
+   if(layer.kind==='goods'){bindDataEditor(f.pd[curP()].vol,'vol');bindDataEditor(f.pd[curP()].dens,'dens');}
+   else if(layer.kind==='substance'||layer.kind==='energy'){const c=f.pd[curP()].conc;document.getElementById('c_en').onchange=e=>{c.enabled=e.target.checked;save();renderProps();};if(document.getElementById('c_type'))bindDataEditor(c,'c');}
   }
  }
 }
