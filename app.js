@@ -406,7 +406,7 @@ function validateModel(){
   if(dd.type==='measured'&&!(+dd.unc>0))msgs.push({level:'error',msg:f.name+' ('+l.id+','+p+'): measured variables need uncertainty > 0.',ref:{kind:'flow',id:f.id}});
  })));
  d.flows.forEach(f=>layers.forEach(l=>{if(f.tc[l.id]&&f.tc[l.id].enabled)unknowns.add(tname(f,l.id));}));
- d.nodes.filter(n=>n.type==='stock'&&!n.boundary).forEach(n=>pl.forEach(p=>layers.forEach(l=>{unknowns.add(n.name+'_start__'+l.id+'__'+p);unknowns.add(n.name+'_end__'+l.id+'__'+p);}));
+ d.nodes.filter(n=>n.type==='stock'&&!n.boundary).forEach(n=>pl.forEach(p=>layers.forEach(l=>{unknowns.add(n.name+'_start__'+l.id+'__'+p);unknowns.add(n.name+'_end__'+l.id+'__'+p);}))); 
  d.nodes.forEach(n=>{
   const ins=d.flows.filter(f=>f.to===n.id),outs=d.flows.filter(f=>f.from===n.id);
   pl.forEach(p=>layers.forEach(l=>{
@@ -495,8 +495,7 @@ function openFind(){
  document.getElementById('findInput').oninput=()=>{
   const q=document.getElementById('findInput').value.toLowerCase();const res=document.getElementById('findResults');
   if(!q){res.innerHTML='';return;}
-  let h='';D().nodes.forEach(n=>{if(n.name.toLowerCase().includes(q))h+='<div data-x="node" data-id="'+n.id+'">'+esc(n.name)+' ('+n.type+')</div>';});
-  D().flows.forEach(f=>{if(f.name.toLowerCase().includes(q))h+='<div data-x="flow" data-id="'+f.id+'">'+esc(f.name)+' (flow)</div>';});
+  let h='';D().nodes.forEach(n=>{if(n.name.toLowerCase().includes(q))h+='<div data-x="node" data-id="'+n.id+'">'+esc(n.name)+' ('+n.type+')</div>';});D().flows.forEach(f=>{if(f.name.toLowerCase().includes(q))h+='<div data-x="flow" data-id="'+f.id+'">'+esc(f.name)+' (flow)</div>';});
   res.innerHTML=h||'<p>No matches.</p>';
   res.querySelectorAll('div[data-x]').forEach(d=>d.onclick=()=>{fb.hidden=true;select({kind:d.dataset.x,id:d.dataset.id});});
  };
@@ -520,7 +519,7 @@ function layersDialog(){
  const rows=state.layers.map(l=>'<tr><td>'+esc(l.code)+'</td><td><input data-ln="'+l.id+'" value="'+esc(l.name)+'"></td><td>'+l.kind+'</td><td><input data-lu="'+l.id+'" value="'+esc(l.unit||'')+'" size="6"></td><td><input type="checkbox" data-lc="'+l.id+'" '+(l.calc!==false?'checked':'')+'></td><td><input data-ld="'+l.id+'" value="'+esc(l.dispUnit||'')+'" size="6"></td><td>'+(l.kind==='goods'?'—':'<button data-dl="'+l.id+'">Delete</button>')+'</td></tr>').join('');
  openModal('Layers and periods','<h4>Periods</h4>'+
   '<label>Start year<input id="perStart" type="number" value="'+state.periods.start+'"></label><label>Number of periods (1 year each)<input id="perCount" type="number" min="1" max="50" value="'+state.periods.count+'"></label>'+
-  '<button id="perApply">Apply periods</button><p>Changing the period record keeps data by position (STAN “keep” behavior); data beyond the new count is discarded.</p>'+
+  '<button id="perApply">Apply periods</button><p>Changing the period record keeps data by position (STAN "keep" behavior); data beyond the new count is discarded.</p>'+
   '<h4>Layers</h4><table><tr><th>Code</th><th>Name</th><th>Kind</th><th>Unit</th><th>Calc</th><th>Display unit</th><th></th></tr>'+rows+'</table>'+
   '<label>Add layer from material<select id="newLayerMat">'+matOptions+'</select></label><button id="layerAdd">Add layer</button>'+
   '<div class="rowbtns"><button id="lClose">Close</button></div>');
@@ -642,7 +641,7 @@ function loadConflict(){
  state.doc.flows=[mk('F1','n1','n2',{type:'measured',value:100,unc:10,unit:'t/a'},{type:'measured',value:1000,unc:100,unit:'kg/a'},'f1'),mk('F2','n2','n3',{type:'unmeasured',value:0,unc:0.1,unit:'t/a'},{type:'unmeasured',value:0,unc:1,unit:'kg/a'},'f2'),mk('F3','n3','n4',{type:'measured',value:160,unc:16,unit:'t/a'},{type:'unmeasured',value:0,unc:1,unit:'kg/a'},'f3'),mk('F4','n2','n4',{type:'unmeasured',value:0,unc:0.1,unit:'t/a'},{type:'unmeasured',value:0,unc:1,unit:'kg/a'},'f4')];
  state.doc.flows.forEach(f=>{state.layers.forEach(l=>{f.tc[l.id]={enabled:false,type:'measured',value:0.5,unc:0.05};});});
  state.doc.flows[1].tc.L1.enabled=true;state.doc.flows[2].conc.enabled=true;state.doc.flows[2].conc.value=10;state.doc.flows[2].conc.unc=1;
- Object.assign(state,{editPath:[],modelName:'Conflict example',activeLayer:'L1',weighted:false,lastResult:null,sel:[],trace:[],undoStack:[],redoStack:[],expanded:{}});
+ Object.assign(state,{editPath:[],modelName:'Conflict example',activeLayer:'L1',weighted:false,lastResult:null,sel:[],trace:[],undoStack:[],redoStack:[],expanded:{});
  save();renderAll();setModeButtons();
 }
 wireUI();setModeButtons();
