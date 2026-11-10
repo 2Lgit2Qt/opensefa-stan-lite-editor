@@ -1,18 +1,61 @@
+var calcOpts={traceLevel:'information',firstP:null,lastP:null,showEq:false};
+function calcPeriods(){const pl=periodList();let a=calcOpts.firstP!=null?pl.indexOf(String(calcOpts.firstP)):0;let b=calcOpts.lastP!=null?pl.indexOf(String(calcOpts.lastP)):pl.length-1;if(a<0)a=0;if(b<0)b=pl.length-1;if(b<a){const tmp=a;a=b;b=tmp;}return pl.slice(a,b+1);}
+function calcDialog(){
+ const pl=periodList();
+ const pOpts=pl.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
+ openModal('Calculation','<label>Trace level<select id="coTrace"><option value="none">none</option><option value="errors">errors</option><option value="warnings">warnings</option><option value="information">information</option><option value="details">details</option></select></label>'+
+  '<label>First period<select id="coFirst">'+pOpts+'</select></label><label>Last period<select id="coLast">'+pOpts+'</select></label>'+
+  '<label><input type="checkbox" id="coEq" '+(calcOpts.showEq?'checked':'')+'>Display used equations after computation</label>'+
+  '<p>Method: data reconciliation, computation of unknown quantities and uncertainty propagation via OpenSEFA.jl (JuMP/Ipopt). Quick start: F5. This dialog: Alt+F5.</p>'+
+  '<div class="rowbtns"><button id="coStart">Start</button><button id="coClose">Close</button></div>');
+ document.getElementById('coTrace').value=calcOpts.traceLevel;
+ document.getElementById('coFirst').value=calcOpts.firstP||pl[0];
+ document.getElementById('coLast').value=calcOpts.lastP||pl[pl.length-1];
+ document.getElementById('coStart').onclick=()=>{calcOpts.traceLevel=document.getElementById('coTrace').value;calcOpts.firstP=document.getElementById('coFirst').value;calcOpts.lastP=document.getElementById('coLast').value;calcOpts.showEq=document.getElementById('coEq').checked;closeModal();doSolve();};
+ document.getElementById('coClose').onclick=closeModal;
+}
 function fillResult(data){
  const rt=document.getElementById('resultTable');if(!rt)return;
  const vals=data&&data.variables_value||{};const uncs=data&&data.uncertainties||{};
- let html='<table><tr><th>Status</th><td>'+(data&&data.status||'')+'</td></tr><tr><th>Objective</th><td>'+(data&&data.objective_value!=null?data.objective_value:'')+'</td></tr><tr><th>Residual</th><td>'+(data&&data.residual_value!=null?data.residual_value:'')+'</td></tr><tr><th>Solve time</th><td>'+(data&&data['Solve time (s)']!=null?data['Solve time (s)']:'')+' s</td></tr></table>';
+ const lp=state.lastPayload;
+ const nV=lp?lp.content.variables.length:0;const nE=lp?lp.content.equations.length:0;
+ const dof=nE-nV;
+ let html='<table>';
+ html+='<tr><th>Status</th><td>'+(data&&data.status||'')+'</td></tr>';
+ html+='<tr><th>Objective</th><td>'+(data&&data.objective_value!=null?data.objective_value:'')+'</td></tr>';
+ html+='<tr><th>Residual</th><td>'+(data&&data.residual_value!=null?data.residual_value:'')+'</td></tr>';
+ html+='<tr><th>Solve time</th><td>'+(data&&data['Solve time (s)']!=null?data['Solve time (s)']:'')+' s</td></tr>';
+ html+='<tr><th>Equation/variable balance</th><td>'+dof+' (equations '+nE+' \u2212 variables '+nV+') \u2014 raw count, not STAN\u2019s transformed degree of over-determination</td></tr>';
+ let q='';let nm=0;
  const names=Object.keys(vals);
+ names.forEach(n=>{const m=n.match(/^(F\d+)__(L\d+)__(\d+)$/);if(m){const f=state.doc.flows.find(x=>x.name===m[1]);const l=m[2],p=m[3];if(f&&f.pd[p]&&f.pd[p][l]&&f.pd[p][l].type==='measured')nm++;}});
+ if(data&&data.objective_value!=null&&nm>0){q=Math.max(0,1-(+data.objective_value)/Math.max(1,nm)).toFixed(2);}
+ html+='<tr><th>Adjustment index (proxy)</th><td>'+q+' \u2014 mean relative adjustment proxy, not STAN\u2019s reconciliation quality statistic</td></tr>';
+ html+='</table>';
  if(names.length){
+  const zs=[];
   html+='<table><tr><th>Variable</th><th>Entered</th><th>Reconciled</th><th>Unc.</th><th>\u0394/\u03c3</th></tr>'+names.map(n=>{
-   const m=n.match(/^(F\d+)__(L\d+)__(\d+)$/);let entered='',z='';let color='';
+   const m=n.match(/^(F\d+)__(L\d+)__(\d+)$/);let entered='',z='';let color='';let zv=null;
    if(m){const f=state.doc.flows.find(x=>x.name===m[1]);const l=m[2],p=m[3];
     if(f&&f.pd[p]&&f.pd[p][l]){entered=f.pd[p][l].value;
-     if(f.pd[p][l].type==='measured'&&+f.pd[p][l].unc>0){z=((+vals[n])-f.pd[p][l].value)/f.pd[p][l].unc;z=z.toFixed(2);if(Math.abs(z)>2)color='color:#b91c1c;font-weight:bold';}
+     if(f.pd[p][l].type==='measured'&&+f.pd[p][l].unc>0){zv=((+vals[n])-f.pd[p][l].value)/f.pd[p][l].unc;z=zv.toFixed(2);if(Math.abs(zv)>2)color='color:#b91c1c;font-weight:bold';}
     }
    }
+   if(zv!==null)zs.push(zv);
    return '<tr><td>'+n+'</td><td>'+entered+'</td><td>'+vals[n]+'</td><td>'+(uncs[n]!=null?uncs[n]:'')+'</td><td style="'+color+'">'+z+'</td></tr>';
   }).join('')+'</table>';
+  const edges=[-Infinity,-2,-1,0,1,2,Infinity];
+  const cnt=[0,0,0,0,0,0];
+  zs.forEach(z=>{for(let i=0;i<6;i++){if(z>=edges[i]&&z<edges[i+1]){cnt[i]++;break;}}});
+  const lbl=['< \u22122','\u22122 .. \u22121','\u22121 .. 0','0 .. 1','1 .. 2','> 2'];
+  const mx=Math.max.apply(null,cnt.concat([1]));
+  html+='<h5>Standard score histogram (\u0394/\u03c3)</h5><table>'+lbl.map((L,i)=>'<tr><td>'+L+'</td><td>'+cnt[i]+'</td><td>'+'\u2588'.repeat(Math.round(cnt[i]*12/mx))+'</td></tr>').join('')+'</table>';
+  const gross=zs.filter(z=>Math.abs(z)>2).length;
+  if(gross>0)traceMsg('warning','Gross error check: '+gross+' of '+zs.length+' measured values lie outside the 95% confidence interval (|\u0394/\u03c3| > 2). The model is likely to contain gross errors.');
+  else if(zs.length)traceMsg('info','Gross error check: no measured value outside the 95% confidence interval. Reconciliation tolerable.');
+  if(q!=='')traceMsg('info','Adjustment index (proxy): '+q+' \u2014 simplified client-side statistic, not STAN\u2019s internal reconciliation quality.');
+  if(dof>0)traceMsg('info','Raw equation surplus: '+dof+' (more equations than variables \u2014 reconciliation possible; not a proof of redundancy).');
+  else if(dof<0)traceMsg('warning','System underdetermined by '+(-dof)+' \u2014 some variables may be unobservable.');
  }
  rt.innerHTML=html;
 }
@@ -31,8 +74,12 @@ function exportWorksheet(){
 function doSolve(){
  const out=document.getElementById('output');if(out)out.textContent='Solving\u2026';
  runValidation();
+ const cps=calcPeriods();
  let payload;
- try{payload=JSON.stringify(exportModel());}catch(err){traceMsg('error','Export failed: '+err.message);if(out)out.textContent='Export failed: '+err.message;return;}
+ try{payload=JSON.stringify(exportModel(cps));}catch(err){traceMsg('error','Export failed: '+err.message);if(out)out.textContent='Export failed: '+err.message;return;}
+ state.lastPayload=JSON.parse(payload);
+ traceMsg('info','Calculation started for periods '+cps[0]+'\u2013'+cps[cps.length-1]+' ('+state.lastPayload.content.variables.length+' variables, '+state.lastPayload.content.equations.length+' equations).');
+ if(calcOpts.showEq||calcOpts.traceLevel==='details'){state.lastPayload.content.equations.forEach((eq,i)=>{const lt=(eq.linear_terms||[]).map(x=>x.name+'\u00d7'+x.factor).join(' + ');const bt=(eq.bilinear_terms||[]).map(x=>x.name1+'\u00d7'+x.name2+'\u00d7'+x.factor).join(' + ');traceMsg('info','Eq '+(i+1)+': '+lt+(bt?' + '+bt:'')+' = 0');});}
  fetch('http://localhost:8080/solve',{method:'POST',headers:{'Content-Type':'application/json'},body:payload}).then(r=>r.json()).then(showResult).catch(e=>{traceMsg('error','Solver error: '+e.message+' \u2014 is the Julia server running on port 8080?');if(out)out.textContent='Error: '+e.message;});
 }
 function openFind(){
@@ -45,7 +92,7 @@ function openFind(){
   res.querySelectorAll('div[data-x]').forEach(d=>d.onclick=()=>{fb.hidden=true;select({kind:d.dataset.x,id:d.dataset.id});});
  };
 }
-function doNew(){state.doc={nodes:[],flows:[],texts:[],nextId:1};state.editPath=[];state.sel=[];state.lastResult=null;state.trace=[];state.expanded={};save();renderAll();}
+function doNew(){state.doc={nodes:[],flows:[],texts:[],nextId:1};state.editPath=[];state.sel=[];state.lastResult=null;state.lastPayload=null;state.trace=[];state.expanded={};save();renderAll();}
 function openModal(title,html){
  const m=document.getElementById('modal');document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=html;m.hidden=false;
 }
@@ -61,7 +108,7 @@ function materialsDialog(){
 }
 function layersDialog(){
  const matOptions=MAT.concat(state.materials).map(m=>'<option value="'+esc(m.code)+'">'+esc(m.code)+' \u2014 '+esc(m.name)+' ('+m.kind+')</option>').join('');
- const rows=state.layers.map(l=>'<tr><td>'+esc(l.code)+'</td><td><input data-ln="'+l.id+'" value="'+esc(l.name)+'"></td><td>'+l.kind+'</td><td><input data-lu="'+l.id+'" value="'+esc(l.unit||'')+'" size="6"></td><td><input type="checkbox" data-lc="'+l.id+'" '+(l.calc!==false?'checked':'')+'></td><td><input data-ld="'+l.id+'" value="'+esc(l.dispUnit||'')+'" size="6"></td><td>'+(l.kind==='goods'?'\u2014':'<button data-dl="'+l.id+'">Delete</button>')+'</td></tr>').join('');
+ const rows=state.layers.map(l=>'<tr><td>'+esc(l.code)+'</td><td><input data-ln="'+l.id+'" value="'+esc(l.name)+'"></td><td>'+l.kind+'</td><td><input data-lu="'+l.id+'" value="'+esc(l.unit||'')+'" size="6"></td><td><input type="checkbox" data-lc="'+l.id+'" '+(l.calc!==false?'checked':'')+'></td><td><input data-ld="'+l.id+'" value="'+esc(l.dispUnit||'')+'" size="6"></td><td>'+(l.kind==='goods'?'—':'<button data-dl="'+l.id+'">Delete</button>')+'</td></tr>').join('');
  openModal('Layers and periods','<h4>Periods</h4>'+
   '<label>Start year<input id="perStart" type="number" value="'+state.periods.start+'"></label><label>Number of periods (1 year each)<input id="perCount" type="number" min="1" max="50" value="'+state.periods.count+'"></label>'+
   '<button id="perApply">Apply periods</button><p>Changing the period record keeps data by position (STAN keep behavior); data beyond the new count is discarded.</p>'+
