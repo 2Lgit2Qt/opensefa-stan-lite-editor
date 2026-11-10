@@ -15,16 +15,22 @@ function render(){
   let sumImp=0,sumExp=0,sumD=0;
   d.flows.forEach(f=>{const k=flowKind(f);const v=flowValue(f,state.activeLayer);if(k==='import')sumImp+=v;if(k==='export')sumExp+=v;});
   d.nodes.filter(n=>n.type==='stock'&&!n.boundary).forEach(n=>{const ld=n.pd[curP()][state.activeLayer];if(ld)sumD+=(ld.end.value||0)-(ld.start.value||0);});
-  const bs=el('text',{x:bx0+6,y:by1-6,'font-size':'11',fill:'#555'});
-  bs.textContent='\u03a3 imports: '+(+sumImp.toFixed(3))+' | \u03a3 exports: '+(+sumExp.toFixed(3))+' | \u03a3 stock change: '+(+sumD.toFixed(3));
-  world.appendChild(bs);
   const layer=state.layers.find(l=>l.id===state.activeLayer);
+  const sf=scaleFactor();
+  const leg=el('text',{x:bx0+6,y:by1-6,'font-size':'11',fill:'#555'});
+  leg.textContent='\u03a3 imports: '+(+(sumImp/sf).toFixed(4))+' | \u03a3 exports: '+(+(sumExp/sf).toFixed(4))+' | \u03a3 stock change: '+(+(sumD/sf).toFixed(4))+(sf!==1?' (scaled by '+esc(state.scaling.unit||'basis')+' / '+sf+')':'');
+  world.appendChild(leg);
   const lg=el('text',{x:bx0+6,y:by1-22,'font-size':'11',fill:'#777'});
-  lg.textContent='Layer: '+esc(layer?layer.name:'')+' ('+esc(layer?layer.unit:'')+') \u2014 '+(ui.displayMode==='calculated'?'calculated':'entered')+' values'+(ui.unitMode==='display'&&layer?' \u2014 display unit '+esc(layer.dispUnit||''):'');
+  lg.textContent='Layer: '+esc(layer?layer.name:'')+' ('+esc(layer?layer.unit:'')+') \u2014 '+(ui.displayMode==='calculated'?'calculated':'entered')+' values'+(ui.unitMode==='display'&&layer?' \u2014 display unit '+esc(layer.dispUnit||''):'')+(state.scaling&&state.scaling.mode!=='none'?' \u2014 scaling: '+esc(state.scaling.unit||'')+' \u00f7 '+sf:'');
   world.appendChild(lg);
  }
  const widths={};
- if(state.weighted){const vals=d.flows.map(f=>flowValue(f,state.activeLayer));const mx=Math.max.apply(null,vals.concat([1e-9]));d.flows.forEach((f,i)=>widths[f.id]=2+18*vals[i]/mx);}
+ if(state.weighted){
+  const mx2=ui.sankeyMaxWidth||20;
+  const vals=d.flows.map(f=>flowValue(f,state.activeLayer));
+  const mx=Math.max.apply(null,vals.concat([1e-9]));
+  d.flows.forEach((f,i)=>widths[f.id]=2+mx2*vals[i]/mx);
+ }
  d.flows.forEach(f=>{
   const a=getNode(f.from),b=getNode(f.to);if(!a||!b)return;
   const p1=anchorPt(a,b),p2=anchorPt(b,a);
@@ -34,6 +40,10 @@ function render(){
   if(f.routing==='ortho'){
    const mx=(p1.x+p2.x)/2;
    shape=el('polyline',{points:p1.x+','+p1.y+' '+mx+','+p1.y+' '+mx+','+p2.y+' '+p2.x+','+p2.y,fill:'none',stroke:col,'stroke-width':widths[f.id]||2,'marker-end':'url(#arrow)',class:'flow'});
+  }else if(state.weighted){
+   const mx2=(p1.x+p2.x)/2;
+   const dx=p2.x-p1.x,dy=p2.y-p1.y;
+   shape=el('path',{d:'M '+p1.x+' '+p1.y+' Q '+(mx2+dy*0.15)+' '+((p1.y+p2.y)/2-dx*0.05)+' '+p2.x+' '+p2.y,fill:'none',stroke:col,'stroke-width':widths[f.id]||2,'stroke-linecap':'round',class:'flow'});
   }else{
    shape=el('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:col,'stroke-width':widths[f.id]||2,'marker-end':'url(#arrow)',class:'flow'});
   }
@@ -84,6 +94,32 @@ function render(){
  });
  svg.appendChild(world);
  renderCrumb();
+}
+function exportSvg(){
+ const s=new XMLSerializer().serializeToString(svg);
+ const doc='<?xml version="1.0" encoding="UTF-8"?>\n'+s;
+ download((state.modelName||'diagram').replace(/\W+/g,'_')+'.svg',doc,'image/svg+xml');
+ traceMsg('info','Diagram exported as SVG.');
+}
+function exportPng(){
+ const s=new XMLSerializer().serializeToString(svg);
+ const img=new Image();
+ img.onload=()=>{
+  const cv=document.createElement('canvas');
+  cv.width=svg.clientWidth*2;cv.height=svg.clientHeight*2;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.drawImage(img,0,0,cv.width,cv.height);
+  cv.toBlob(blob=>{
+   const a=document.createElement('a');
+   a.href=URL.createObjectURL(blob);
+   a.download=(state.modelName||'diagram').replace(/\W+/g,'_')+'.png';
+   a.click();
+   traceMsg('info','Diagram exported as PNG.');
+  },'image/png');
+ };
+ img.onerror=()=>{traceMsg('warning','PNG export failed (SVG-to-image conversion not supported). Use SVG export instead.');};
+ img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(s)));
 }
 function renderCrumb(){
  const c=document.getElementById('crumb');
