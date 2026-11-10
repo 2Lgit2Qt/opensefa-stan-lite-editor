@@ -103,10 +103,10 @@ function openFind(){
  };
 }
 function doNew(){state.doc={nodes:[],flows:[],texts:[],nextId:1};state.editPath=[];state.sel=[];state.lastResult=null;state.lastPayload=null;state.trace=[];state.expanded={};save();renderAll();}
-function openModal(title,html){
- const m=document.getElementById('modal');document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=html;m.hidden=false;
+function openModal(title,html,cls){
+ const m=document.getElementById('modal');document.getElementById('modalTitle').textContent=title;const mb=document.getElementById('modalBox');mb.className=cls||'';document.getElementById('modalBody').innerHTML=html;m.hidden=false;
 }
-function closeModal(){document.getElementById('modal').hidden=true;}
+function closeModal(){document.getElementById('modal').hidden=true;document.getElementById('modalBox').className='';}
 function materialsDialog(){
  const rows=MAT.concat(state.materials).map((m,i)=>'<tr><td>'+esc(m.code)+'</td><td>'+esc(m.name)+'</td><td>'+m.kind+'</td><td>'+(i>=MAT.length?'<button data-del="'+esc(m.code)+'">Delete</button>':'predefined')+'</td></tr>').join('');
  openModal('Define material','<table><tr><th>Code</th><th>Name</th><th>Kind</th><th></th></tr>'+rows+'</table>'+
@@ -152,4 +152,226 @@ function unitsDialog(){
  document.getElementById('uAdd').onclick=()=>{const fam=document.getElementById('uFam').value,name=document.getElementById('uName').value.trim(),fac=+document.getElementById('uFactor').value;if(!name||!fac||!Number.isFinite(fac)){alert('Name and numeric factor required.');return;}if(/^\d/.test(name)){alert('Unit names must not start with a number.');return;}if(state.units[fam][name]!==undefined){alert('Unit already exists in this family.');return;}state.units[fam][name]=fac;state.customUnits[fam]=state.customUnits[fam]||{};state.customUnits[fam][name]=true;save();unitsDialog();};
  document.querySelectorAll('#modalBody [data-du]').forEach(b=>b.onclick=()=>{const fam=b.dataset.du.split('|')[0],u=b.dataset.du.split('|')[1];delete state.units[fam][u];delete state.customUnits[fam][u];save();unitsDialog();});
  document.getElementById('uClose').onclick=closeModal;
+}
+var dexState={tab:'values',group:'pl',collapsed:{},edit:false,calc:false,sort:null,dir:1};
+function dexOpen(){
+ openModal('Data Explorer','','wide');
+ const mb=document.getElementById('modalBody');
+ mb.onclick=dexClick;
+ mb.oninput=dexInput;
+ mb.onchange=dexInput;
+ dexRender();
+}
+function dexBuildRows(){
+ const d=D();const rows=[];const pl=periodList();
+ if(dexState.tab==='values'){
+  d.flows.forEach(f=>{
+   pl.forEach(p=>{
+    state.layers.forEach(l=>{
+     const dat=f.pd[p]&&f.pd[p][l.id];
+     if(!dat)return;
+     rows.push({kind:'fv',f,p,l,dat,keys:{flow:f.name,layer:l,period:p},vals:[f.name,(getNode(f.from)?getNode(f.from).name:'?'),(getNode(f.to)?getNode(f.to).name:'?'),l,p,dat.type,dat.value,dat.unc,dat.unit||'',dat.ref||'',dat.rem||'']});
+    });
+   });
+  });
+ }else if(dexState.tab==='tc'){
+  d.flows.forEach(f=>{
+   state.layers.forEach(l=>{
+    const tc=f.tc&&f.tc[l.id];
+    if(!tc)return;
+    rows.push({kind:'tc',f,l,tc,keys:{flow:f.name,layer:l},vals:[f.name,l,tc.enabled?'yes':'no',tc.type,tc.value,tc.unc]});
+   });
+  });
+ }else if(dexState.tab==='stocks'){
+  d.nodes.filter(n=>n.type==='stock').forEach(n=>{
+   pl.forEach(p=>{
+    state.layers.forEach(l=>{
+     const pd=n.pd[p]&&n.pd[p][l.id];
+     if(!pd)return;
+     ['start','end'].forEach(kd=>{
+      rows.push({kind:'st',f:n.id,p,l,kd,dat:pd[kd],keys:{stock:n.name,layer:l,period:p},vals:[n.name,l,p,kd,pd[kd].type,pd[kd].value,pd[kd].unc,pd[kd].ref||'',pd[kd].rem||'']});
+     });
+    });
+   });
+  });
+ }else if(dexState.tab==='conc'){
+  d.flows.forEach(f=>{
+   pl.forEach(p=>{
+    const c=f.pd[p]&&f.pd[p].conc;
+    if(!c)return;
+    rows.push({kind:'cc',f,p,c,keys:{flow:f.name,period:p},vals:[f.name,p,c.enabled?'yes':'no',c.type,c.value,c.unc]});
+   });
+  });
+ }else if(dexState.tab==='procs'){
+  d.nodes.forEach(n=>{
+   const ins=d.flows.filter(f=>f.to===n.id).map(f=>f.name).join(', ');
+   const outs=d.flows.filter(f=>f.from===n.id).map(f=>f.name).join(', ');
+   rows.push({kind:'pr',f:n.id,keys:{name:n.name},vals:[n.name,n.type,ins,outs]});
+  });
+ }
+ return rows;
+}
+function dexHead(){
+ if(dexState.tab==='values')return ['Flow','From','To','Layer','Period','Type','Value','Unc.','Unit','Ref','Rem'];
+ if(dexState.tab==='tc')return ['Flow','Layer','Enabled','Type','Value','Unc.'];
+ if(dexState.tab==='stocks')return ['Stock','Layer','Period','Start/End','Type','Value','Unc.','Ref','Rem'];
+ if(dexState.tab==='conc')return ['Flow','Period','Enabled','Type','Value','Unc.'];
+ return ['Name','Type','Inputs','Outputs'];
+}
+function dexErrMap(){
+ const errs={};
+ validateModel().forEach(m=>{if(m.ref&&m.ref.kind==='flow')errs[m.ref.id]=m.msg;});
+ return errs;
+}
+function dexCell(kind,f,p,l,kd,fld,val,editable){
+ if(!editable)return '<td>'+esc(val)+'</td>';
+ if(fld==='type')return '<td><select data-k="'+kind+'" data-f="'+f+'" data-p="'+(p||'')+'" data-l="'+(l||'')+'" data-kd="'+(kd||'')+'" data-fld="type"><option'+(val==='measured'?' selected':'')+'>measured</option><option'+(val==='unmeasured'?' selected':'')+'>unmeasured</option><option'+(val==='fixed'?' selected':'')+'>fixed</option></select></td>';
+ if(fld==='enabled')return '<td><input type="checkbox" data-k="'+kind+'" data-f="'+f+'" data-p="'+(p||'')+'" data-l="'+(l||'')+'" data-fld="enabled" '+(val?'checked':'')+'></td>';
+ return '<td><input data-k="'+kind+'" data-f="'+f+'" data-p="'+(p||'')+'" data-l="'+(l||'')+'" data-kd="'+(kd||'')+'" data-fld="'+fld+'" value="'+esc(val)+'"></td>';
+}
+function dexRender(){
+ const mb=document.getElementById('modalBody');
+ const tabs=[['values','Flow values'],['tc','Transfer coefficients'],['stocks','Stocks'],['conc','Concentrations'],['procs','Processes']];
+ let bar='<div class="dexbar">'+tabs.map(x=>'<button data-tab="'+x[0]+'"'+(dexState.tab===x[0]?' style="font-weight:bold"':'')+'>'+x[1]+'</button>').join('')+
+  '<span style="flex:1"></span>'+
+  '<label><input type="checkbox" id="dexEdit" '+(dexState.edit?'checked':'')+'> Edit</label>'+
+  '<label><input type="checkbox" id="dexCalc" '+(dexState.calc?'checked':'')+'> Calculated</label>';
+ if(dexState.tab==='values')bar+='<label>Group<select id="dexGroup"><option value="pl"'+(dexState.group==='pl'?' selected':'')+'>Period \u2192 Layer</option><option value="lp"'+(dexState.group==='lp'?' selected':'')+'>Layer \u2192 Period</option><option value="none"'+(dexState.group==='none'?' selected':'')+'>None</option></select></label>';
+ bar+='<button id="dexCopy">Copy TSV</button><button id="dexCsv">Export CSV</button>'+(dexState.tab==='values'?'<button id="dexPaste">Paste block</button>':'')+'</div>';
+ const rows=dexBuildRows();
+ const head=dexHead();
+ const errs=dexErrMap();
+ const sortable=({values:['Flow','Value','Period','Layer'],tc:['Flow'],stocks:['Stock'],conc:['Flow'],procs:['Name']});
+ let h='<div id="dexGrid"><table><tr>'+head.map(c=>'<th'+((sortable[dexState.tab]||[]).indexOf(c)>=0?' data-sort="'+c+'"':'')+'>'+c+'</th>').join('')+(dexState.tab==='values'&&dexState.calc?'<th>Reconciled</th>':'')+'</tr>';
+ const sorted=rows.slice();
+ if(dexState.sort){
+  const idx=head.indexOf(dexState.sort);
+  if(idx>=0)sorted.sort((a,b)=>{const av=a.vals[idx];const bv=b.vals[idx];return (av>bv?1:av<bv?-1:0)*dexState.dir;});
+ }
+ function rowHtml(r){
+  let cls='';if(r.kind==='fv'&&errs[r.f.id])cls=' class="err" title="'+esc(errs[r.f.id])+'"';
+  let cells='';
+  const e=dexState.edit;
+  if(r.kind==='fv'){
+   cells='<td>'+esc(r.vals[0])+'</td><td>'+esc(r.vals[1])+'</td><td>'+esc(r.vals[2])+'</td><td>'+esc(r.vals[3])+'</td><td>'+esc(r.vals[4])+'</td>'+
+    dexCell('fv',r.f.id,r.p,r.l,'','type',r.dat.type,e)+
+    dexCell('fv',r.f.id,r.p,r.l,'','value',r.dat.value,e)+
+    dexCell('fv',r.f.id,r.p,r.l,'','unc',r.dat.unc,e)+
+    dexCell('fv',r.f.id,r.p,r.l,'','unit',r.dat.unit||'',e)+
+    dexCell('fv',r.f.id,r.p,r.l,'','ref',r.dat.ref||'',e)+
+    dexCell('fv',r.f.id,r.p,r.l,'','rem',r.dat.rem||'',e);
+   if(dexState.calc){
+    const vn=vname(r.f,r.l,r.p);
+    const rv=(state.lastResult&&state.lastResult.variables_value&&state.lastResult.variables_value[vn]!==undefined)?state.lastResult.variables_value[vn]:'\u2014';
+    cells+='<td>'+rv+'</td>';
+   }
+  }else if(r.kind==='tc'){
+   cells='<td>'+esc(r.vals[0])+'</td><td>'+esc(r.vals[1])+'</td>'+
+    dexCell('tc',r.f.id,'',r.l,'','enabled',r.tc.enabled,e)+
+    dexCell('tc',r.f.id,'',r.l,'','type',r.tc.type,e)+
+    dexCell('tc',r.f.id,'',r.l,'','value',r.tc.value,e)+
+    dexCell('tc',r.f.id,'',r.l,'','unc',r.tc.unc,e);
+  }else if(r.kind==='st'){
+   cells='<td>'+esc(r.vals[0])+'</td><td>'+esc(r.vals[1])+'</td><td>'+esc(r.vals[2])+'</td><td>'+esc(r.vals[3])+'</td>'+
+    dexCell('st',r.f,r.p,r.l,r.kd,'type',r.dat.type,e)+
+    dexCell('st',r.f,r.p,r.l,r.kd,'value',r.dat.value,e)+
+    dexCell('st',r.f,r.p,r.l,r.kd,'unc',r.dat.unc,e)+
+    dexCell('st',r.f,r.p,r.l,r.kd,'ref',r.dat.ref||'',e)+
+    dexCell('st',r.f,r.p,r.l,r.kd,'rem',r.dat.rem||'',e);
+  }else if(r.kind==='cc'){
+   cells='<td>'+esc(r.vals[0])+'</td><td>'+esc(r.vals[1])+'</td>'+
+    dexCell('cc',r.f.id,r.p,'','','enabled',r.c.enabled,e)+
+    dexCell('cc',r.f.id,r.p,'','','type',r.c.type,e)+
+    dexCell('cc',r.f.id,r.p,'','','value',r.c.value,e)+
+    dexCell('cc',r.f.id,r.p,'','','unc',r.c.unc,e);
+  }else{
+   cells=r.vals.map(v=>'<td>'+esc(v)+'</td>').join('');
+  }
+  return '<tr'+cls+'>'+cells+'</tr>';
+ }
+ if(dexState.tab==='values'&&dexState.group!=='none'){
+  const outer=dexState.group==='pl'?'period':'layer';
+  const inner=dexState.group==='pl'?'layer':'period';
+  const groups={};
+  sorted.forEach(r=>{const gk=r.keys[outer];if(!groups[gk])groups[gk]=[];groups[gk].push(r);});
+  Object.keys(groups).forEach(gk=>{
+   const collapsed=dexState.collapsed[dexState.tab+'|'+gk];
+   h+='<tr class="grp"><td colspan="'+(head.length+(dexState.calc?1:0))+'" data-grp="'+esc(gk)+'">'+(collapsed?'\u25b8':'\u25be')+' '+(outer==='period'?'Period ':'Layer ')+esc(gk)+'</td></tr>';
+   if(!collapsed){
+    const sub={};
+    groups[gk].forEach(r=>{const sk=r.keys[inner];if(!sub[sk])sub[sk]=[];sub[sk].push(r);});
+    Object.keys(sub).forEach(sk=>{
+     h+='<tr class="grp2"><td colspan="'+(head.length+(dexState.calc?1:0))+'">'+(inner==='period'?'Period ':'Layer ')+esc(sk)+'</td></tr>';
+     sub[sk].forEach(r=>{h+=rowHtml(r);});
+    });
+   }
+  });
+ }else{
+  sorted.forEach(r=>{h+=rowHtml(r);});
+ }
+ h+='</table></div>';
+ if(dexState.tab==='values'){
+  h+='<div id="dexPasteBox" style="display:none;margin-top:6px"><textarea id="dexPasteArea" style="width:100%;height:80px"></textarea><button id="dexPasteApply">Apply pasted block</button><p>Header row required: name,layer,period,type,value,uncertainty,unit. Rows update existing flows (Excel: copy cells, paste here).</p></div>';
+ }
+ mb.innerHTML=bar+h;
+}
+function dexClick(ev){
+ const el=ev.target;if(!el.dataset&&!el.id)return;
+ if(el.dataset&&el.dataset.tab){dexState.tab=el.dataset.tab;dexState.sort=null;dexRender();return;}
+ if(el.dataset&&el.dataset.grp){const g=dexState.tab+'|'+el.dataset.grp;dexState.collapsed[g]=!dexState.collapsed[g];dexRender();return;}
+ if(el.dataset&&el.dataset.sort){if(dexState.sort===el.dataset.sort)dexState.dir*=-1;else{dexState.sort=el.dataset.sort;dexState.dir=1;}dexRender();return;}
+ if(el.id==='dexEdit'){dexState.edit=el.checked;dexRender();return;}
+ if(el.id==='dexCalc'){dexState.calc=el.checked;dexRender();return;}
+ if(el.id==='dexGroup'){dexState.group=el.value;dexRender();return;}
+ if(el.id==='dexCopy'){dexCopy();return;}
+ if(el.id==='dexCsv'){dexCsv();return;}
+ if(el.id==='dexPaste'){document.getElementById('dexPasteBox').style.display='block';return;}
+ if(el.id==='dexPasteApply'){importCSV(document.getElementById('dexPasteArea').value);dexRender();return;}
+}
+function dexInput(ev){
+ const el=ev.target;if(!el.dataset||!el.dataset.k)return;
+ const d=D();const k=el.dataset.k;
+ if(k==='fv'){
+  const f=d.flows.find(x=>x.id===el.dataset.f);if(!f)return;
+  const dat=f.pd[el.dataset.p]&&f.pd[el.dataset.p][el.dataset.l];if(!dat)return;
+  const fld=el.dataset.fld;
+  if(fld==='value'||fld==='unc')dat[fld]=+el.value;else dat[fld]=el.value;
+  save();
+ }else if(k==='tc'){
+  const f=d.flows.find(x=>x.id===el.dataset.f);if(!f)return;
+  const tc=f.tc&&f.tc[el.dataset.l];if(!tc)return;
+  const fld=el.dataset.fld;
+  if(fld==='enabled')tc.enabled=el.checked;else if(fld==='value'||fld==='unc')tc[fld]=+el.value;else tc[fld]=el.value;
+  save();
+ }else if(k==='st'){
+  const n=d.nodes.find(x=>x.id===el.dataset.f);if(!n)return;
+  const dat=n.pd[el.dataset.p]&&n.pd[el.dataset.p][el.dataset.l];if(!dat)return;
+  const tgt=dat[el.dataset.kd];if(!tgt)return;
+  const fld=el.dataset.fld;
+  if(fld==='value'||fld==='unc')tgt[fld]=+el.value;else tgt[fld]=el.value;
+  save();
+ }else if(k==='cc'){
+  const f=d.flows.find(x=>x.id===el.dataset.f);if(!f)return;
+  const c=f.pd[el.dataset.p]&&f.pd[el.dataset.p].conc;if(!c)return;
+  const fld=el.dataset.fld;
+  if(fld==='enabled')c.enabled=el.checked;else if(fld==='value'||fld==='unc')c[fld]=+el.value;else c[fld]=el.value;
+  save();
+ }
+}
+function dexTsv(){
+ const rows=dexBuildRows();
+ const head=dexHead();
+ const lines=[head.join('\t')];
+ rows.forEach(r=>{lines.push(r.vals.map(v=>String(v)).join('\t'));});
+ return lines.join('\n');
+}
+function dexCopy(){
+ const s=dexTsv();
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(s).then(()=>traceMsg('info','Data Explorer table copied to clipboard (TSV \u2014 paste into Excel).'),()=>traceMsg('warning','Clipboard write failed; use Export CSV.'));}
+ else traceMsg('warning','Clipboard API unavailable; use Export CSV.');
+}
+function dexCsv(){
+ const s=dexTsv().split('\n').map(r=>r.split('\t').map(f=>/[",\n]/.test(f)?'"'+f.replace(/"/g,'""')+'"':f).join(',')).join('\n');
+ download((state.modelName||'model').replace(/\W+/g,'_')+'_data_'+dexState.tab+'.csv',s,'text/csv');
+ traceMsg('info','Exported '+dexState.tab+' data as CSV.');
 }

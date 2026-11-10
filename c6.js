@@ -12,6 +12,7 @@ function wireUI(){
  on('miLayers',layersDialog);
  on('miUnits',unitsDialog);
  on('miRefs',refsDialog);
+ on('miData',dexOpen);
  on('miCalc',calcDialog);
  on('miSubgoods',()=>{state.subgoods=!state.subgoods;save();renderStatic();traceMsg('info','Subgood mode '+(state.subgoods?'enabled: subgood layers must sum to the goods layer per flow.':'disabled.'));});
  on('miClean',loadClean);on('miConflict',loadConflict);
@@ -67,6 +68,7 @@ function wireUI(){
   else if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();doUndo();}
   else if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();doRedo();}
   else if(mod&&e.key.toLowerCase()==='f'){e.preventDefault();openFind();}
+  else if(mod&&e.key.toLowerCase()==='d'){e.preventDefault();dexOpen();}
   else if(mod&&e.key.toLowerCase()==='c'){copySelection();}
   else if(mod&&e.key.toLowerCase()==='v'){pasteClipboard();}
   else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();deleteSelection();}
