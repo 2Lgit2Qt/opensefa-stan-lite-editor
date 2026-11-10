@@ -1,7 +1,8 @@
-function exportDoc(prefix,doc){
+function exportDoc(prefix,doc,plOverride){
  const variables=[];const equations=[];
- const pl=periodList();
+ const pl=(plOverride&&plOverride.length)?plOverride:periodList();
  const layers=state.layers.filter(l=>l.calc!==false);
+ const goodsL=layers.find(l=>l.kind==='goods');
  const vn=(f,l,p)=>prefix+f.name+'__'+l+'__'+p;
  const tn=(f,l)=>prefix+f.name+'_tc__'+l;
  doc.flows.forEach(f=>pl.forEach(p=>layers.forEach(l=>{
@@ -15,7 +16,7 @@ function exportDoc(prefix,doc){
  doc.nodes.forEach(n=>{
   const ins=doc.flows.filter(f=>f.to===n.id),outs=doc.flows.filter(f=>f.from===n.id);
   pl.forEach(p=>layers.forEach(l=>{
-   if(n.type==='process'||n.type==='subsystem'){
+   if((n.type==='process'||n.type==='subsystem')&&!(n.noBalance&&goodsL&&l.id===goodsL.id)){
     const lt=[];ins.forEach(f=>lt.push({name:vn(f,l.id,p),factor:1}));outs.forEach(f=>lt.push({name:vn(f,l.id,p),factor:-1}));
     equations.push({constant_term:{value:0},linear_terms:lt,bilinear_terms:[]});
     outs.filter(f=>f.tc[l.id]&&f.tc[l.id].enabled).forEach(f=>{
@@ -29,7 +30,7 @@ function exportDoc(prefix,doc){
    }
   }));
   if(n.type==='subsystem'&&n.sub&&n.sub.nodes.length){
-   const inner=exportDoc(prefix+n.name+'.',n.sub);
+   const inner=exportDoc(prefix+n.name+'.',n.sub,plOverride);
    inner.variables.forEach(v=>variables.push(v));
    inner.equations.forEach(eq=>equations.push(eq));
   }
@@ -51,7 +52,7 @@ function exportDoc(prefix,doc){
  if(primary&&secondary){doc.flows.forEach(f=>{if(f.conc&&f.conc.enabled){variables.push(varObj(f.conc,prefix+f.name+'_conc'));pl.forEach(p=>equations.push({constant_term:{value:0},linear_terms:[{name:vn(f,secondary.id,p),factor:1}],bilinear_terms:[{name1:prefix+f.name+'_conc',name2:vn(f,primary.id,p),factor:-1}]}));}});}
  return {variables,equations};
 }
-function exportModel(){const r=exportDoc('',state.doc);return {content:{name:state.modelName,periods:{start:state.periods.start,count:state.periods.count,list:periodList()},variables:r.variables,equations:r.equations,solver:'JuMP'}};}
+function exportModel(cps){const pl=(cps&&cps.length)?cps:periodList();const r=exportDoc('',state.doc,pl);return {content:{name:state.modelName,periods:{start:state.periods.start,count:state.periods.count,list:pl},variables:r.variables,equations:r.equations,solver:'JuMP'}};}
 function validateModel(){
  const msgs=[];let eqCount=0;const unknowns=new Set();const d=D();const pl=periodList();const layers=state.layers.filter(l=>l.calc!==false);
  d.flows.forEach(f=>pl.forEach(p=>layers.forEach(l=>{
@@ -65,7 +66,7 @@ function validateModel(){
  d.nodes.forEach(n=>{
   const ins=d.flows.filter(f=>f.to===n.id),outs=d.flows.filter(f=>f.from===n.id);
   pl.forEach(p=>layers.forEach(l=>{
-   if(n.type==='process'||n.type==='subsystem'){eqCount++;
+   if((n.type==='process'||n.type==='subsystem')&&!(n.noBalance)){eqCount++;
     outs.filter(f=>f.tc[l.id]&&f.tc[l.id].enabled).forEach(f=>{eqCount++;
      if(!ins.length)msgs.push({level:'error',msg:f.name+': transfer coefficient needs at least one input flow.',ref:{kind:'flow',id:f.id}});
      if(ins.length===1&&outs.length===1)msgs.push({level:'warning',msg:f.name+': TC with one input and one output over-constrains the balance; add a loss/split outlet.',ref:{kind:'flow',id:f.id}});

@@ -36,6 +36,7 @@ function renderProps(){
    let h='<label>'+t('name')+'<input id="pName" value="'+esc(n.name)+'"></label><label>'+t('short')+'<input id="pShort" value="'+esc(n.short||'')+'"></label><p>'+t('process')+': '+n.type+'</p>';
    if(n.type==='stock')h+='<label><input type="checkbox" id="boundary" '+(n.boundary?'checked':'')+'>'+t('boundary')+'</label>';
    if(n.type==='subsystem')h+='<p>Subsystem with own internal model. Double-click to edit (up to six levels).</p><button id="pEnter">Edit subsystem</button>';
+   if(n.type==='process'||n.type==='subsystem')h+='<label><input type="checkbox" id="noBal" '+(n.noBalance?'checked':'')+'>Exclude from balancing (layer of goods)</label>';
    h+='<label>'+t('remarks')+'<textarea id="pRem">'+esc(n.remarks||'')+'</textarea></label>';
    body.innerHTML=h;
    document.getElementById('pName').oninput=e=>{n.name=e.target.value;save();render();renderExplorer();};
@@ -43,8 +44,9 @@ function renderProps(){
    document.getElementById('pRem').oninput=e=>{n.remarks=e.target.value;save();};
    if(n.type==='stock')document.getElementById('boundary').onchange=e=>{n.boundary=e.target.checked;save();render();};
    if(n.type==='subsystem')document.getElementById('pEnter').onclick=()=>enterSubsystem(n.id);
+   if(n.type==='process'||n.type==='subsystem')document.getElementById('noBal').onchange=e=>{n.noBalance=e.target.checked;save();render();};
   }else{
-   const pd=n.pd[curP()][L];
+   const pd=n.pd?n.pd[curP()][L]:null;
    let h='<h4>'+esc(n.name)+' \u2014 '+esc(layer.name)+' \u2014 '+curP()+'</h4>';
    if(n.type==='stock'){h+='<h5>'+t('start')+'</h5>'+dataEditor(pd.start,'st')+'<h5>'+t('end')+'</h5>'+dataEditor(pd.end,'en');}
    if(n.type==='process'){const outs=D().flows.filter(f=>f.from===n.id);h+='<h5>'+t('tc')+' (shared across periods)</h5>';if(!outs.length)h+='<p>\u2014</p>';outs.forEach(f=>{const tc=f.tc[L];h+='<h6>'+esc(f.name)+'</h6><label><input type="checkbox" id="tc_'+f.id+'" '+(tc.enabled?'checked':'')+'> TC</label><div id="tcbox_'+f.id+'" style="display:'+(tc.enabled?'block':'none')+'">'+dataEditor(tc,'tc'+f.id)+'</div>';});}
@@ -74,7 +76,13 @@ function renderProps(){
   }
  }
 }
-function traceMsg(level,msg,ref){state.trace.push({level,msg,ref:ref||null});renderTrace();}
+function traceMsg(level,msg,ref){
+ const tl=(typeof calcOpts!=='undefined'&&calcOpts&&calcOpts.traceLevel)||'information';
+ if(tl==='none')return;
+ if(tl==='errors'&&level!=='error')return;
+ if(tl==='warnings'&&level==='info')return;
+ state.trace.push({level,msg,ref:ref||null});renderTrace();
+}
 function renderTrace(){
  const tl=document.getElementById('traceList');
  tl.innerHTML=state.trace.map((m,i)=>'<p class="'+(m.ref?'cl':'')+'" data-i="'+i+'" style="color:'+(m.level==='error'?'#b91c1c':m.level==='warning'?'#b45309':'#1d4ed8')+'">['+m.level.toUpperCase()+'] '+esc(m.msg)+'</p>').join('')||'<p>No messages.</p>';
