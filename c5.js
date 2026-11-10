@@ -14,6 +14,16 @@ function calcDialog(){
  document.getElementById('coStart').onclick=()=>{calcOpts.traceLevel=document.getElementById('coTrace').value;calcOpts.firstP=document.getElementById('coFirst').value;calcOpts.lastP=document.getElementById('coLast').value;calcOpts.showEq=document.getElementById('coEq').checked;closeModal();doSolve();};
  document.getElementById('coClose').onclick=closeModal;
 }
+function refsDialog(){
+ const rows=state.refs.map((r,i)=>'<tr><td>'+esc(r)+'</td><td><button data-dr="'+i+'">Delete</button></td></tr>').join('');
+ openModal('Literature references','<table><tr><th>Reference</th><th></th></tr>'+(rows||'')+'</table>'+
+  '<label>New reference<input id="refNew"></label>'+
+  '<p>References are offered as a dropdown when documenting individual flow and stock values (Properties \u2192 Values).</p>'+
+  '<div class="rowbtns"><button id="refAdd">Add</button><button id="rClose">Close</button></div>');
+ document.getElementById('refAdd').onclick=()=>{const v=document.getElementById('refNew').value.trim();if(!v)return;if(state.refs.includes(v)){alert('Reference already exists.');return;}state.refs.push(v);save();refsDialog();};
+ document.querySelectorAll('#modalBody [data-dr]').forEach(b=>b.onclick=()=>{state.refs.splice(+b.dataset.dr,1);save();refsDialog();});
+ document.getElementById('rClose').onclick=closeModal;
+}
 function fillResult(data){
  const rt=document.getElementById('resultTable');if(!rt)return;
  const vals=data&&data.variables_value||{};const uncs=data&&data.uncertainties||{};
@@ -49,7 +59,7 @@ function fillResult(data){
   zs.forEach(z=>{for(let i=0;i<6;i++){if(z>=edges[i]&&z<edges[i+1]){cnt[i]++;break;}}});
   const lbl=['< \u22122','\u22122 .. \u22121','\u22121 .. 0','0 .. 1','1 .. 2','> 2'];
   const mx=Math.max.apply(null,cnt.concat([1]));
-  html+='<h5>Standard score histogram (\u0394/\u03c3)</h5><table>'+lbl.map((L,i)=>'<tr><td>'+L+'</td><td>'+cnt[i]+'</td><td>'+'\u2588'.repeat(Math.round(cnt[i]*12/mx))+'</td></tr>').join('')+'</table>';
+  html+='<h5>Standard score histogram (\u0394/\u03c3)</h5><table>'+lbl.map((L2,i)=>'<tr><td>'+L2+'</td><td>'+cnt[i]+'</td><td>'+'\u2588'.repeat(Math.round(cnt[i]*12/mx))+'</td></tr>').join('')+'</table>';
   const gross=zs.filter(z=>Math.abs(z)>2).length;
   if(gross>0)traceMsg('warning','Gross error check: '+gross+' of '+zs.length+' measured values lie outside the 95% confidence interval (|\u0394/\u03c3| > 2). The model is likely to contain gross errors.');
   else if(zs.length)traceMsg('info','Gross error check: no measured value outside the 95% confidence interval. Reconciliation tolerable.');
@@ -68,7 +78,7 @@ function showResult(data){
 }
 function exportWorksheet(){
  const w=state.worksheet;
- const md='# MFA/SEFA project worksheet\n\n## Model\n\n- Model: '+state.modelName+'\n- Periods: '+periodList()[0]+'\u2013'+periodList()[periodList().length-1]+'\n\n## Research question\n\n'+(w.question||'(not filled)')+'\n\n## Spatial boundary\n\n'+(w.spatial||'(not filled)')+'\n\n## Reference period\n\n'+(w.period||periodList().join(', '))+'\n\n## Tracked goods, substances, and energy\n\n'+(w.quantities||'(not filled)')+'\n\n## Data sources and assumptions\n\n'+(w.sources||'(not filled)')+'\n\n## Interpretation and optimization potential\n\n'+(w.interpretation||'(not filled)')+'\n';
+ const md='# MFA/SEFA project worksheet\n\n## Model\n\n- Model: '+state.modelName+'\n- Periods: '+periodList()[0]+'\u2013'+periodList()[periodList().length-1]+'\n\n## Research question\n\n'+(w.question||'(not filled)')+'\n\n## Spatial boundary\n\n'+(w.spatial||'(not filled)')+'\n\n## Reference period\n\n'+(w.period||periodList().join(', '))+'\n\n## Tracked goods, substances, and energy\n\n'+(w.quantities||'(not filled)')+'\n\n## Data sources and assumptions\n\n'+(w.sources||'(not filled)')+'\n\n## Literature references\n\n'+((state.refs&&state.refs.length)?state.refs.map(r=>'- '+r).join('\n'):'(none)')+'\n\n## Interpretation and optimization potential\n\n'+(w.interpretation||'(not filled)')+'\n';
  download((state.modelName||'worksheet').replace(/\W+/g,'_')+'_worksheet.md',md,'text/markdown');
 }
 function doSolve(){
@@ -108,7 +118,7 @@ function materialsDialog(){
 }
 function layersDialog(){
  const matOptions=MAT.concat(state.materials).map(m=>'<option value="'+esc(m.code)+'">'+esc(m.code)+' \u2014 '+esc(m.name)+' ('+m.kind+')</option>').join('');
- const rows=state.layers.map(l=>'<tr><td>'+esc(l.code)+'</td><td><input data-ln="'+l.id+'" value="'+esc(l.name)+'"></td><td>'+l.kind+'</td><td><input data-lu="'+l.id+'" value="'+esc(l.unit||'')+'" size="6"></td><td><input type="checkbox" data-lc="'+l.id+'" '+(l.calc!==false?'checked':'')+'></td><td><input data-ld="'+l.id+'" value="'+esc(l.dispUnit||'')+'" size="6"></td><td>'+(l.kind==='goods'?'—':'<button data-dl="'+l.id+'">Delete</button>')+'</td></tr>').join('');
+ const rows=state.layers.map(l=>'<tr><td>'+esc(l.code)+'</td><td><input data-ln="'+l.id+'" value="'+esc(l.name)+'"></td><td>'+l.kind+'</td><td><input data-lu="'+l.id+'" value="'+esc(l.unit||'')+'" size="6"></td><td><input type="checkbox" data-lc="'+l.id+'" '+(l.calc!==false?'checked':'')+'></td><td><input data-ld="'+l.id+'" value="'+esc(l.dispUnit||'')+'" size="6"></td><td>'+(l.kind==='goods'?'\u2014':'<button data-dl="'+l.id+'">Delete</button>')+'</td></tr>').join('');
  openModal('Layers and periods','<h4>Periods</h4>'+
   '<label>Start year<input id="perStart" type="number" value="'+state.periods.start+'"></label><label>Number of periods (1 year each)<input id="perCount" type="number" min="1" max="50" value="'+state.periods.count+'"></label>'+
   '<button id="perApply">Apply periods</button><p>Changing the period record keeps data by position (STAN keep behavior); data beyond the new count is discarded.</p>'+
