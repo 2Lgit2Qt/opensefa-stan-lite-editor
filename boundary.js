@@ -26,7 +26,6 @@ validateModel=function(){update();const doc=D();if(!doc.systemBoundary)return pr
 const clear=document.getElementById('tbBoundaryClear');if(clear){clear.title='Grenze entfernen; aktuelle interne/externe Zuordnung beibehalten';clear.addEventListener('click',()=>{boundarySelected=false;drawing=false;});}
 // Remove the legacy demo action entirely; examples are opened as separate files.
 const demo=document.getElementById('tbAltglas');if(demo){demo.onclick=null;demo.remove();}
-// New must produce a clean, empty project rather than restoring the last saved example.
 function emptyProject(){
  state.scaling={unit:'capita',factor:100000,mode:'none'};
  state.doc={nodes:[],flows:[],texts:[],nextId:1};
@@ -40,17 +39,20 @@ function emptyProject(){
  state.worksheet={question:'',spatial:'',period:'',quantities:'',sources:'',interpretation:''};
  state.editPath=[];state.sel=[];state.trace=[];state.expanded={};state.undoStack=[];state.redoStack=[];
  state.activeLayer='L1';state.activePeriod='2026';
- state.lastResult=null;state.lastPayload=null;
+ state.lastResult=null;state.lastPayload=null;state.clipboard=null;
  state.mode='select';state.connectFrom=null;
  state.propTab='system';
+ delete state.boundary;
+ boundarySelected=false;drawing=false;
 }
-const previousNew=doNew;
+// Replacing doNew alone does not update onclick references captured by wireUI.
 doNew=function(){
  if(!confirm('Neues leeres Projekt erstellen? Das aktuell geladene Projekt wird verworfen.'))return;
  emptyProject();
- try{localStorage.removeItem(LS_KEY);}catch(error){}
+ save();
  renderAll();setModeButtons();
  traceMsg('info','Neues leeres Projekt erstellt.');
 };
+['miNew','tbNew'].forEach(id=>{const button=document.getElementById(id);if(button)button.onclick=()=>doNew();});
 renderAll();
 })();
