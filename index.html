@@ -1,152 +1,35 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-<meta charset="UTF-8">
-<title>OpenSEFA STAN-lite Editor</title>
-<link rel="icon" href="data:,">
-<link rel="stylesheet" href="style.css">
-</head>
+<head><meta charset="UTF-8"><title>OpenSEFA STAN-lite Editor</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css"></head>
 <body>
 <header>
-  <div id="menubar">
-    <div class="menu"><button data-i18n="file">Datei</button>
-      <div class="dropdown">
-        <button id="miNew" data-i18n="new">Neu</button>
-        <button id="miOpen" data-i18n="open">Öffnen</button>
-        <button id="miSave" data-i18n="save">Projekt speichern</button>
-        <button id="miSaveAs">Speichern unter …</button>
-        <hr>
-        <button id="miClean">Beispiel: konsistent</button>
-        <button id="miConflict">Beispiel: Konflikt</button>
-        <hr>
-        <button id="miWorksheet">Arbeitsblatt exportieren</button>
-        <button id="miJson">Solver-JSON exportieren</button>
-        <button id="miExportSvg">Diagramm als SVG exportieren</button>
-        <button id="miExportPng">Diagramm als PNG exportieren</button>
-        <button id="miDocInfo">Dokumentinformationen</button>
-      </div>
-    </div>
-    <div class="menu"><button data-i18n="edit">Bearbeiten</button>
-      <div class="dropdown">
-        <button id="miUndo" data-i18n="undo">Rückgängig</button>
-        <button id="miRedo" data-i18n="redo">Wiederholen</button>
-        <button id="miFind" data-i18n="find">Objekte suchen</button>
-        <button id="miDelete" data-i18n="del">Löschen</button>
-        <hr>
-        <button id="miCsv">CSV importieren</button>
-        <hr>
-        <button id="miMaterials">Material definieren</button>
-        <button id="miLayers">Schichten und Zeiträume</button>
-        <button id="miUnits">Einheiten definieren</button>
-        <button id="miRefs">Literaturquellen</button>
-        <hr>
-        <button id="miCalc">Berechnung … (Alt+F5)</button>
-        <button id="miData">Daten-Explorer … (Strg+D)</button>
-      </div>
-    </div>
-    <div class="menu"><button data-i18n="view">Ansicht</button>
-      <div class="dropdown">
-        <button id="miGrid" data-i18n="grid">Gitter</button>
-        <button id="miSnap" data-i18n="snap">Am Gitter ausrichten</button>
-        <button id="miZoomIn" data-i18n="zoomIn">Vergrößern</button>
-        <button id="miZoomOut" data-i18n="zoomOut">Verkleinern</button>
-        <button id="miCaption">Beschriftung: Name</button>
-        <button id="miLang">Sprache: Deutsch</button>
-      </div>
-    </div>
-    <div class="menu"><button data-i18n="extras">Extras</button>
-      <div class="dropdown">
-        <button id="miOptions">Optionen …</button>
-        <button id="miSubgoods">Untergut-Schichten: aus</button>
-        <button id="miReset">Einstellungen zurücksetzen</button>
-      </div>
-    </div>
-  </div>
-  <div id="toolbars">
-    <div class="tbgroup">
-      <button id="tbNew" data-i18n="new">Neu</button>
-      <button id="tbOpen" data-i18n="open">Öffnen</button>
-      <button id="tbSave" data-i18n="save">Speichern</button>
-      <button id="tbUndo" data-i18n="undo">Rückgängig</button>
-      <button id="tbRedo" data-i18n="redo">Wiederholen</button>
-      <button id="tbFind" data-i18n="find">Suchen</button>
-      <button id="tbAltglas">Beispiel: Altglas</button>
-    </div>
-    <div class="tbgroup">
-      <button id="tbGrid" data-i18n="grid">Gitter</button>
-      <button id="tbSnap" data-i18n="snap">Ausrichten</button>
-      <button id="tbZoomIn">+</button>
-      <button id="tbZoomOut">−</button>
-    </div>
-    <div class="tbgroup">
-      <label class="inlbl" data-i18n="layers">Schichten</label>
-      <select id="layerSelect"></select>
-      <label class="inlbl" data-i18n="period">Zeitraum</label>
-      <select id="periodSelect"></select>
-      <button id="tbCsv">CSV</button>
-      <button id="tbValidate" data-i18n="validation">Struktur prüfen</button>
-      <button id="tbSolve" data-i18n="solve">Berechnen</button>
-    </div>
-    <div class="tbgroup">
-      <button id="tbSankey" data-i18n="sankey">Als Sankey zeigen</button>
-      <label class="inlbl">Breite</label>
-      <input type="range" id="tbSankeyWidth" min="5" max="50" value="20" style="width:60px">
-      <button id="tbDisplay" data-i18n="calculated">Berechnet</button>
-      <button id="tbUnitsMode">Einheiten: eingegeben</button>
-    </div>
-  </div>
-  <div id="crumb"></div>
-</header>
-<main>
-  <aside id="left">
-    <div class="pane">
-      <h3 data-i18n="explorer">Modell-Explorer</h3>
-      <div id="explorer"></div>
-    </div>
-    <div class="pane">
-      <h3 data-i18n="shapes">Formen</h3>
-      <div id="shapes">
-        <button id="shSelect" data-i18n="select">Auswahl</button>
-        <button id="shProcess" data-i18n="process">Prozess</button>
-        <button id="shStock" data-i18n="stock">Lager</button>
-        <button id="shBoundary">Externer Ein-/Ausgang</button>
-        <button id="shSubsystem">Subsystem</button>
-        <button id="shConnect" data-i18n="connect">Fluss</button>
-        <button id="shText">Textfeld</button>
-        <button id="shDelete" data-i18n="del">Löschen</button>
-      </div>
-    </div>
-  </aside>
-  <div id="canvasWrap">
-    <svg id="canvas"></svg>
-  </div>
-  <aside id="right">
-    <div class="pane">
-      <h3 data-i18n="properties">Eigenschaften</h3>
-      <div id="propTabs"></div>
-      <div id="props"></div>
-    </div>
-    <div class="pane">
-      <h3 data-i18n="trace">Meldungen</h3>
-      <div id="traceBar"><button id="traceClear" data-i18n="clear">Leeren</button></div>
-      <div id="traceList"></div>
-    </div>
-  </aside>
-</main>
-<div id="findBox" hidden>
-  <input id="findInput" placeholder="Suchbegriff">
-  <div id="findResults"></div>
+<div id="menubar">
+<div class="menu"><button data-i18n="file">Datei</button><div class="dropdown">
+<button id="miNew" data-i18n="new">Neu</button><button id="miOpen" data-i18n="open">Öffnen</button><button id="miSave" data-i18n="save">Projekt speichern</button><button id="miSaveAs">Speichern unter …</button><hr>
+<button id="miClean">Beispiel: konsistent</button><button id="miConflict">Beispiel: Konflikt</button><hr>
+<button id="miWorksheet">Arbeitsblatt exportieren</button><button id="miJson">Solver-JSON exportieren</button><button id="miExportSvg">Diagramm als SVG exportieren</button><button id="miExportPng">Diagramm als PNG exportieren</button><button id="miDocInfo">Dokumentinformationen</button>
+</div></div>
+<div class="menu"><button data-i18n="edit">Bearbeiten</button><div class="dropdown">
+<button id="miUndo" data-i18n="undo">Rückgängig</button><button id="miRedo" data-i18n="redo">Wiederholen</button><button id="miFind" data-i18n="find">Objekte suchen</button><button id="miDelete" data-i18n="del">Löschen</button><hr><button id="miCsv">CSV importieren</button><hr>
+<button id="miMaterials">Material definieren</button><button id="miLayers">Schichten und Zeiträume</button><button id="miUnits">Einheiten definieren</button><button id="miRefs">Literaturquellen</button><hr><button id="miCalc">Berechnung … (Alt+F5)</button><button id="miData">Daten-Explorer … (Strg+D)</button>
+</div></div>
+<div class="menu"><button data-i18n="view">Ansicht</button><div class="dropdown"><button id="miGrid" data-i18n="grid">Gitter</button><button id="miSnap" data-i18n="snap">Am Gitter ausrichten</button><button id="miZoomIn" data-i18n="zoomIn">Vergrößern</button><button id="miZoomOut" data-i18n="zoomOut">Verkleinern</button><button id="miCaption">Beschriftung: Name</button><button id="miLang">Sprache: Deutsch</button></div></div>
+<div class="menu"><button data-i18n="extras">Extras</button><div class="dropdown"><button id="miOptions">Optionen …</button><button id="miSubgoods">Untergut-Schichten: aus</button><button id="miReset">Einstellungen zurücksetzen</button></div></div>
 </div>
+<div id="toolbars">
+<div class="tbgroup"><button id="tbNew" data-i18n="new">Neu</button><button id="tbOpen" data-i18n="open">Öffnen</button><button id="tbSave" data-i18n="save">Speichern</button><button id="tbUndo" data-i18n="undo">Rückgängig</button><button id="tbRedo" data-i18n="redo">Wiederholen</button><button id="tbFind" data-i18n="find">Suchen</button><button id="tbAltglas">Beispiel: Altglas</button></div>
+<div class="tbgroup"><button id="tbGrid" data-i18n="grid">Gitter</button><button id="tbSnap" data-i18n="snap">Ausrichten</button><button id="tbZoomIn">+</button><button id="tbZoomOut">−</button></div>
+<div class="tbgroup"><label class="inlbl" data-i18n="layers">Schichten</label><select id="layerSelect"></select><label class="inlbl" data-i18n="period">Zeitraum</label><select id="periodSelect"></select><button id="tbCsv">CSV</button><button id="tbValidate" data-i18n="validation">Struktur prüfen</button><button id="tbSolve" data-i18n="solve">Berechnen</button></div>
+<div class="tbgroup"><button id="tbSankey" data-i18n="sankey">Als Sankey zeigen</button><label class="inlbl">Breite</label><input type="range" id="tbSankeyWidth" min="5" max="50" value="20" style="width:60px"><button id="tbDisplay" data-i18n="calculated">Berechnet</button><button id="tbUnitsMode">Einheiten: eingegeben</button></div>
+</div><div id="crumb"></div></header>
+<main>
+<aside id="left"><div class="pane"><h3 data-i18n="explorer">Modell-Explorer</h3><div id="explorer"></div></div><div class="pane"><h3 data-i18n="shapes">Formen</h3><div id="shapes"><button id="shSelect" data-i18n="select">Auswahl</button><button id="shProcess" data-i18n="process">Prozess</button><button id="shStock" data-i18n="stock">Lager</button><button id="shBoundary">Externer Ein-/Ausgang</button><button id="shSubsystem">Subsystem</button><button id="shConnect" data-i18n="connect">Fluss</button><button id="shText">Textfeld</button><button id="shDelete" data-i18n="del">Löschen</button></div></div></aside>
+<div id="canvasWrap"><svg id="canvas"></svg></div>
+<aside id="right"><div class="pane"><h3 data-i18n="properties">Eigenschaften</h3><div id="propTabs"></div><div id="props"></div></div><div class="pane"><h3 data-i18n="trace">Meldungen</h3><div id="traceBar"><button id="traceClear" data-i18n="clear">Leeren</button></div><div id="traceList"></div></div></aside>
+</main>
+<div id="findBox" hidden><input id="findInput" placeholder="Suchbegriff"><div id="findResults"></div></div>
 <div id="modal" hidden><div id="modalBox"><h3 id="modalTitle"></h3><div id="modalBody"></div></div></div>
-<input type="file" id="openProject" accept=".json" hidden>
-<input type="file" id="importCsv" accept=".csv,.txt" hidden>
-<script src="c1.js"></script>
-<script src="c2.js"></script>
-<script src="c3.js"></script>
-<script src="c4.js"></script>
-<script src="c5.js"></script>
-<script src="c6.js"></script>
-<script src="c7.js"></script>
-<script src="presentation.js"></script>
+<input type="file" id="openProject" accept=".json" hidden><input type="file" id="importCsv" accept=".csv,.txt" hidden>
+<script src="c1.js"></script><script src="c2.js"></script><script src="c3.js"></script><script src="c4.js"></script><script src="c5.js"></script><script src="c6.js"></script><script src="c7.js"></script><script src="presentation.js"></script><script src="boundary.js"></script>
 </body>
 </html>
