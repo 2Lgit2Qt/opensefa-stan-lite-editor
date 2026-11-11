@@ -11,7 +11,6 @@ let boundarySelected=false,drawing=false;
 function styleBoundary(){const group=svg.querySelector('[data-system-boundary]');if(!group)return;const outline=group.firstElementChild;if(!outline)return;outline.setAttribute('stroke',boundarySelected?'#2563eb':'#64748b');Array.from(group.children).slice(1).forEach(handle=>{handle.style.display=boundarySelected?'':'none';});}
 const previousRender=render;
 render=function(){update();const result=previousRender.apply(this,arguments);styleBoundary();return result;};
-// Let the existing handlers perform geometry edits; manage visual selection separately.
 svg.addEventListener('mousedown',event=>{if(event.button!==0)return;const target=event.target;const onBoundary=target.closest&&target.closest('[data-system-boundary]');drawing=state.mode==='boundary';boundarySelected=!!onBoundary||drawing;if(!onBoundary&&!drawing)styleBoundary();},true);
 window.addEventListener('mouseup',()=>{if(drawing){drawing=false;boundarySelected=false;render();}else styleBoundary();});
 window.addEventListener('keydown',event=>{if(event.key==='Escape'){drawing=false;boundarySelected=false;if(state.mode==='boundary'){state.mode='select';setModeButtons();}render();}});
@@ -20,14 +19,38 @@ const previousProps=renderProps;
 renderProps=function(){update();previousProps.apply(this,arguments);const checkbox=document.getElementById('boundary');if(checkbox&&D().systemBoundary){checkbox.disabled=true;checkbox.title='Automatisch durch die Systemgrenze bestimmt';}const selected=state.sel.length===1?state.sel[0]:null;if(selected&&selected.kind==='flow'&&state.propTab==='general'){const flow=D().flows.find(f=>f.id===selected.id);if(flow){const text=document.createElement('div');text.textContent='Flusstyp: '+({import:'Einfuhr',export:'Ausfuhr',internal:'Intern',external:'Außerhalb des Systems'}[flowKind(flow)]);document.getElementById('props').appendChild(text);}}};
 const previousKind=flowKind;
 flowKind=function(f){const d=D();if(!d.systemBoundary)return previousKind(f);const a=d.nodes.find(n=>n.id===f.from),b=d.nodes.find(n=>n.id===f.to);if(!a||!b)return 'external';const ae=external(a,d),be=external(b,d);return ae?(be?'external':'import'):(be?'export':'internal');};
-// Adapt only the solver view; never remove or retype nodes in the project.
 const previousExport=exportDoc;
 exportDoc=function(prefix,doc,periods){sync(doc);if(!doc.systemBoundary)return previousExport(prefix,doc,periods);const active=new Set(doc.nodes.filter(n=>!external(n,doc)).map(n=>n.id));const view=Object.assign({},doc,{nodes:doc.nodes.map(n=>{if(active.has(n.id))return n;return Object.assign({},n,{type:'stock',boundary:true,sub:null});}),flows:doc.flows.filter(f=>active.has(f.from)||active.has(f.to))});return previousExport(prefix,view,periods);};
-// Validation operates on the same internal scope as export.
 const previousValidate=validateModel;
 validateModel=function(){update();const doc=D();if(!doc.systemBoundary)return previousValidate();const savedNodes=doc.nodes,savedFlows=doc.flows;const active=new Set(savedNodes.filter(n=>!external(n,doc)).map(n=>n.id));try{doc.nodes=savedNodes.map(n=>active.has(n.id)?n:Object.assign({},n,{type:'stock',boundary:true,sub:null}));doc.flows=savedFlows.filter(f=>active.has(f.from)||active.has(f.to));return previousValidate();}finally{doc.nodes=savedNodes;doc.flows=savedFlows;}};
 const clear=document.getElementById('tbBoundaryClear');if(clear){clear.title='Grenze entfernen; aktuelle interne/externe Zuordnung beibehalten';clear.addEventListener('click',()=>{boundarySelected=false;drawing=false;});}
-// Detach the legacy demo action. No example is fetched or loaded by this module.
+// Remove the legacy demo action entirely; examples are opened as separate files.
 const demo=document.getElementById('tbAltglas');if(demo){demo.onclick=null;demo.remove();}
+// New must produce a clean, empty project rather than restoring the last saved example.
+function emptyProject(){
+ state.scaling={unit:'capita',factor:100000,mode:'none'};
+ state.doc={nodes:[],flows:[],texts:[],nextId:1};
+ state.layers=[{id:'L1',code:'G',name:'Goods',kind:'goods',unit:'t/a',calc:true,dispUnit:'t'}];
+ state.materials=[];state.refs=[];
+ state.customUnits={};
+ state.periods={start:2026,count:1};
+ state.subgoods=false;
+ state.modelName='SEFMN model';
+ state.periodLabel='Year 2026';
+ state.worksheet={question:'',spatial:'',period:'',quantities:'',sources:'',interpretation:''};
+ state.editPath=[];state.sel=[];state.trace=[];state.expanded={};state.undoStack=[];state.redoStack=[];
+ state.activeLayer='L1';state.activePeriod='2026';
+ state.lastResult=null;state.lastPayload=null;
+ state.mode='select';state.connectFrom=null;
+ state.propTab='system';
+}
+const previousNew=doNew;
+doNew=function(){
+ if(!confirm('Neues leeres Projekt erstellen? Das aktuell geladene Projekt wird verworfen.'))return;
+ emptyProject();
+ try{localStorage.removeItem(LS_KEY);}catch(error){}
+ renderAll();setModeButtons();
+ traceMsg('info','Neues leeres Projekt erstellt.');
+};
 renderAll();
 })();
